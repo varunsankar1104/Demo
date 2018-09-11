@@ -1,0 +1,3593 @@
+<?php
+
+/**
+ * @file
+ * Generic module to handle comman functionalities across paitners.
+ * Module contains the custom settings for Painters site.
+ */
+define('PAINTERS_COLOR_PALETTE_PER_ROW', 7);
+
+require_once dirname(__FILE__) . '/includes/utils.inc';
+
+// Preprocessors for configurable labels
+require_once dirname(__FILE__) . '/includes/labels.inc';
+
+/**
+ * Implements hook_menu().
+ */
+function painters_deployment_menu() {
+  $items = array();
+  // Admin UI
+  $items['admin/config/painters'] = array(
+    'title' => 'Painters',
+    'description' => 'Configure Painters Specific Configurations',
+    'page callback' => 'system_admin_menu_block_page',
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'position' => 'right',
+    'file' => 'system.admin.inc',
+    'file path' => drupal_get_path('module', 'system'),
+  );
+
+  $items['admin/config/painters/consumer-site-url'] = array(
+    'title' => 'Consumer site URL',
+    'description' => 'Configure consumer site URL of the market here',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_deployment_consumer_site_url',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_deployment.admin.inc',
+  );
+
+  $items['admin/config/painters/color-palette'] = array(
+    'title' => 'Main Color Palette',
+    'description' => 'Configure number of colors to be displayed per row',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_deployment_color_palette_admin_settings',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_deployment.admin.inc',
+  );
+
+  $items['admin/config/painters/search-settings'] = array(
+    'title' => 'Search Configurations',
+    'description' => 'Configure number of search results to be displayed in Autosuggest',
+    'position' => 'left',
+    'weight' => -103,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_deployment_search_admin_settings',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_deployment.admin.inc',
+  );
+  $items['admin/config/painters/new-article-blocks'] = array(
+    'title' => 'New Articles Blocks',
+    'description' => 'Select the Articles for displaying in bottom region',
+    'position' => 'left',
+    'weight' => -105,
+    'page callback' => 'painters_articles_new_block',
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_advice_support.admin.inc',
+  );
+  $items['article-promo-content/autocomplete'] = array(
+    'title' => 'Autocomplete for New articles',
+    'page callback' => 'promo_article_search_options',
+    'access arguments' => array('administer site configuration'),
+    'file' => 'painters_store_promo_article.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+  $items['article-new-content/autocomplete'] = array(
+    'title' => 'Autocomplete for New articles',
+    'page callback' => 'article_search_options',
+    'access arguments' => array('administer site configuration'),
+    'file' => 'painters_advice_support.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/config/painters/footer-copyright'] = array(
+    'title' => 'Footer Copyright',
+    'description' => 'Enter the footer copyright text',
+    'position' => 'left',
+    'weight' => -105,
+    'page callback' => 'drupal_get_form',
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'page arguments' => array(
+      'painters_deployment_footer_copyright',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_deployment.admin.inc',
+  );
+  $items['admin/config/painters/store-promo-article'] = array(
+    'title' => 'Store Promo Article Page',
+    'description' => 'Select the Articles for displaying in bottom region of store page',
+    'position' => 'left',
+    'weight' => -108,
+    'page callback' => 'painters_articles_store_promo_block',
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_store_promo_article.admin.inc',
+  );
+  $items['admin/config/painters/social-channels'] = array(
+    'title' => 'Footer social channel lables',
+    'description' => 'Configure the footer social channel lables and urls',
+    'position' => 'left',
+    'weight' => -106,
+    'page callback' => 'drupal_get_form',
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'page arguments' => array(
+      'painters_deployment_social_channels',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_deployment.admin.inc',
+  );
+  $items['admin/config/painters/delete-block-variable/%/%'] = array(
+    'title' => 'Delete',
+    'page callback' => 'drupal_get_form',
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'page arguments' => array(
+      'block_variable_delete_confirm',
+      4,
+      5,
+    ),
+    'weight' => 1,
+    'type' => MENU_CALLBACK,
+  );
+  $items['deploy-variable-authoring-server/%/%'] = array(
+    'title' => 'Delete',
+    'page callback' => 'deploy_authoring_variable',
+    'access arguments' => array(
+      'access content',
+    ),
+    'page arguments' => array(
+      1,
+      2,
+    ),
+    'weight' => 1,
+    'type' => MENU_CALLBACK,
+  );
+  $items['deploy-variable-live-server/%/%'] = array(
+    'title' => 'Delete',
+    'page callback' => 'deploy_live_variable',
+    'access arguments' => array(
+      'access content',
+    ),
+    'page arguments' => array(
+      1,
+      2,
+    ),
+    'weight' => 1,
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/config/painters/live-server-url'] = array(
+    'title' => 'Live server URL',
+    'description' => 'Live server url',
+    'position' => 'left',
+    'weight' => -108,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'deploy_live_server_url',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $items['admin/config/painters/select-template-color-collection'] = array(
+    'title' => 'Select display templates',
+    'description' => 'Select display templates for color collection and color tools overview pages',
+    'position' => 'left',
+    'weight' => -109,
+    'page callback' => 'drupal_get_form',
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'page arguments' => array(
+      'painters_select_templates_collor_collection',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_deployment.admin.inc',
+  );
+  $items['admin/config/painters/new-article-blocks-all-advice'] = array(
+    'title' => 'New Articles Blocks All Advice',
+    'description' => 'Select the Articles for displaying in bottom region',
+    'position' => 'left',
+    'weight' => -105,
+    'page callback' => 'painters_articles_new_block_all_advice',
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_advice_support_all_advice.admin.inc',
+  );
+  $items['admin/config/painters/advice-support-overview-articles'] = array(
+    'title' => 'Advice and support config form',
+    'description' => 'Select the Articles for displaying in bottom region',
+    'position' => 'left',
+    'weight' => -111,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'advice_support_overview_config_form',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_advice_support_overview_config.admin.inc',
+  );
+  $items['article-new-content-all-advice/autocomplete'] = array(
+    'title' => 'Autocomplete for New articles for all advice',
+    'page callback' => 'article_search_all_advice_options',
+    'access arguments' => array('administer site configuration'),
+    'file' => 'painters_advice_support_all_advice.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  // Quicktabs Ajax
+  $items['painters-ajax/quicktabs/advise'] = array(
+    'page callback' => '_painters_ajax_quicktabs_advise',
+    'file' => 'includes/ajax.inc',
+    'access callback' => TRUE,
+    'page arguments' => array(
+      3,
+    ),
+    'type' => MENU_CALLBACK,
+  );
+
+  // advise knowledge page
+  $items['advice/knowledge'] = array(
+    'page callback' => '_painters_advice_quicktabs_page',
+    'file' => 'includes/ajax.inc',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+
+  // Account related Ajax callbcks
+  // modals/account-address.html
+  $items['painters-ajax/account/address'] = array(
+    'page callback' => '_get_painters_ajax_account_address',
+    'type' => MENU_CALLBACK,
+  );
+  // modals/account-company.html
+  $items['painters-ajax/account/company'] = array(
+    'page callback' => '_get_painters_ajax_account_company',
+    'type' => MENU_CALLBACK,
+  );
+  // modals/account-delete.html
+  $items['painters-ajax/account/delete'] = array(
+    'page callback' => '_get_painters_ajax_account_delete',
+    'type' => MENU_CALLBACK,
+  );
+  // modals/account-info.html
+  $items['painters-ajax/account/info'] = array(
+    'page callback' => '_get_painters_ajax_account_info',
+    'type' => MENU_CALLBACK,
+  );
+  // modals/account-personal.html
+  $items['painters-ajax/account/personal'] = array(
+    'page callback' => '_get_painters_ajax_account_personal',
+    'type' => MENU_CALLBACK,
+  );
+  // Forgot password
+  // modals/account-personal.html
+  $items['painters-ajax/account/password'] = array(
+    'page callback' => '_get_painters_ajax_account_password',
+    'type' => MENU_CALLBACK,
+  );
+  // modals/reset-password.html
+  $items['painters-ajax/account/reset-password'] = array(
+    'page callback' => '_get_painters_ajax_account_reset_password',
+    'type' => MENU_CALLBACK,
+  );
+  $items['painters-ajax/account/reset-link'] = array(
+    'page callback' => '_get_painters_ajax_account_reset_link',
+    'type' => MENU_CALLBACK,
+  );
+  $items['painters-ajax/account/signin'] = array(
+    'page callback' => '_get_painters_ajax_account_signin',
+    'type' => MENU_CALLBACK,
+  );
+  $items['painters-ajax/media/upload'] = array(
+    'page callback' => '_get_painters_ajax_media_upload',
+    'type' => MENU_CALLBACK,
+  );
+  $items['painters-ajax/media/upload-confirmation'] = array(
+    'page callback' => '_get_painters_ajax_media_upload_confirmation',
+    'type' => MENU_CALLBACK,
+  );
+  // JOB related Ajax callbcks
+  $items['painters-ajax/job/add'] = array(
+    'page callback' => '_get_painters_ajax_job_add',
+    'type' => MENU_CALLBACK,
+  );
+  $items['painters-ajax/job/edit'] = array(
+    'page callback' => '_get_painters_ajax_job_edit',
+    'type' => MENU_CALLBACK,
+  );
+  $items['painters-ajax/job/create'] = array(
+    'page callback' => '_get_painters_ajax_job_create',
+    'type' => MENU_CALLBACK,
+  );
+  $items['painters-ajax/job/create'] = array(
+    'page callback' => '_get_painters_ajax_job_create',
+    'type' => MENU_CALLBACK,
+  );
+
+  // Social Media related Ajax callbcks
+  $items['painters-ajax/connect/google'] = array(
+    'page callback' => '_get_painters_ajax_connect_google',
+    'type' => MENU_CALLBACK,
+  );
+  $items['painters-ajax/connect/facebook'] = array(
+    'page callback' => '_get_painters_ajax_connect_facebook',
+    'type' => MENU_CALLBACK,
+  );
+  $items['painters-ajax/connect/twitter'] = array(
+    'page callback' => '_get_painters_ajax_connect_twitter',
+    'type' => MENU_CALLBACK,
+  );
+
+  // Misc
+  $items['painters-ajax/product/save'] = array(
+    'page callback' => '_get_painters_ajax_product_save',
+    'type' => MENU_CALLBACK,
+  );
+
+  // Lables config items.
+  $items['admin/config/painters/sitefurniture-label'] = array(
+    'title' => 'Site labels configuration',
+    'description' => 'Provide labels configuration for site',
+    'position' => 'left',
+    'page callback' => 'drupal_get_form',
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'page arguments' => array(
+      'site_label_configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $items['admin/config/painters/sitefurniture-label/workspace-labels'] = array(
+    'title' => 'Workspace Labels',
+    'description' => 'Configure Workspace Labels',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_create_workspace_labels',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_site_labels_config.admin.inc',
+  );
+  $items['admin/config/painters/sitefurniture-label/home-page-brand-labels'] = array(
+    'title' => 'Home Page Brand Labels',
+    'description' => 'Configure Home page Brand Labels',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_home_brand_labels',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_site_labels_config.admin.inc',
+  );
+  $items['admin/config/painters/sitefurniture-label/color-listing-details-labels'] = array(
+    'title' => 'Color listing & details Labels',
+    'description' => 'Configure Color listing & details Labels',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_color_listing_details_labels',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_site_labels_config.admin.inc',
+  );
+  $items['admin/config/painters/sitefurniture-label/color-collection-tools-labels'] = array(
+    'title' => 'Color collection & tools Labels',
+    'description' => 'Configure Color collection & tools Labels',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_color_collection_tools_labels',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_site_labels_config.admin.inc',
+  );
+  $items['admin/config/painters/sitefurniture-label/product-labels'] = array(
+    'title' => 'Product overview, listing & compare labels',
+    'description' => 'Configure Product overview, listing & compare Labels',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_product_labels',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_site_labels_config.admin.inc',
+  );
+  $items['admin/config/painters/sitefurniture-label/product-datasheet-labels'] = array(
+    'title' => 'Product Data sheet labels',
+    'description' => 'Configure Product data sheet Labels',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_product_datasheet_labels',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_site_labels_config.admin.inc',
+  );
+  // menu item
+  $items['admin/config/painters/sitefurniture-label/contact-us-labels'] = array(
+    'title' => 'Contact us labels',
+    'description' => 'Configure Contact us Labels',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_contact_us_labels',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_site_labels_config.admin.inc',
+  );
+  $items['admin/config/painters/sitefurniture-label/training-labels'] = array(
+    'title' => 'Training labels',
+    'description' => 'Configure Training Labels',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_training_labels',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_site_labels_config.admin.inc',
+  );
+  $items['admin/config/painters/sitefurniture-label/store-listing-detail-labels'] = array(
+    'title' => 'Store Listing / Detail labels',
+    'description' => 'Configure Store Listing / Detail Labels',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_store_labels',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_site_labels_config.admin.inc',
+  );
+  $items['admin/config/painters/sitefurniture-label/knowledge-center-sustainability-labels'] = array(
+    'title' => 'Knowledge Center / Sustainability labels',
+    'description' => 'Configure Knowledge Center / Sustainability Labels',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_knowledge_center_sustainability_labels',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_site_labels_config.admin.inc',
+  );
+  $items['admin/config/painters/sitefurniture-label/product-color-search-labels'] = array(
+    'title' => 'Product / color search labels',
+    'description' => 'Configure Product / color search Labels',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_product_color_search_labels',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_site_labels_config.admin.inc',
+  );
+  $items['admin/config/painters/sitefurniture-label/generic-search-labels'] = array(
+    'title' => 'Generic search labels',
+    'description' => 'Configure Generic search Labels',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_generic_search_labels',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_site_labels_config.admin.inc',
+  );
+  $items['admin/config/painters/sitefurniture-label/faq-labels'] = array(
+    'title' => 'FAQ labels',
+    'description' => 'Configure FAQ Labels',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_faq_labels',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_site_labels_config.admin.inc',
+  );
+  $items['admin/config/painters/employee-range'] = array(
+    'title' => 'Employee range settings',
+    'description' => 'Employee range settings to use on account settings',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'drupal_get_form',
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'page arguments' => array(
+      'employee_range_settings_form',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['admin/config/painters/language-settings'] = array(
+    'title' => 'Language setting',
+    'description' => 'Configure language setting',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_deployment_language_setting',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_deployment.admin.inc',
+  );
+  $items['admin/config/painters/debug'] = array(
+    'title' => 'Debug configurations',
+    'description' => 'Configure debug settings',
+    'position' => 'left',
+    'weight' => -111,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_debug_admin_setting',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'includes/debug.admin.inc',
+  );
+  $items['admin/config/painters/painters-custom-url-alias'] = array(
+    'title' => 'Painters custom URL alias',
+    'description' => 'Painters Custom URL alias',
+    'position' => 'left',
+    'weight' => -110,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_custom_urls_alias',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_deployment.custom_url_alias.inc',
+  );
+  $items['admin/config/painters/image-help-link'] = array(
+    'title' => 'Painters GPP Image help link',
+    'description' => 'URL For Display of image dimension',
+    'position' => 'left',
+    'weight' => -115,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_deployment_image_help_admin_settings',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_deployment.admin.inc',
+  );
+  $items['admin/config/painters/show-hide-settings'] = array(
+    'title' => 'Painters show/hide configuration',
+    'description' => 'Configure show/hide information for product detail page and workspace page',
+    'position' => 'left',
+    'weight' => -100,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_show_hide_settings',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_deployment.admin.inc',
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_ctools_plugin_api().
+ */
+function painters_deployment_ctools_plugin_api($module, $api) {
+  if ($module == 'quicktabs' && $api == 'quicktabs') {
+    return array(
+      'version' => '1',
+    );
+  }
+}
+
+/**
+ * Implements hook_views_pre_view().
+ */
+function painters_deployment_views_pre_view(&$view, &$display_id, &$args) {
+  $lang = _get_current_users_language();
+  if ($view->name == 'product_search_autocomplete_details') {
+    $view->display['default']->handler->options['filters']['language']['value'] = array($lang => $lang);
+  }
+
+  if ($view->name == 'global_search') {
+    $view->display['default']->handler->options['filters']['node_language']['value'] = array($lang => $lang);
+    $view->display['search_article_section']->handler->options['filters']['node_language']['value'] = array($lang => $lang);
+  }
+}
+
+/**
+ * Implements hook_preprocess_html().
+ */
+function painters_deployment_preprocess_html(&$variables, $hook) {
+  drupal_add_js("window.painterDebug = " . intval(variable_get('painters_debug_mode_enable', 0)) . ';', array(
+    "type" => "inline",
+    "weight" => 20,
+  ));
+  // Pass Search settings values to JS
+  drupal_add_js(array(
+    'painters_search_settings' => array(
+      'search_limit' => variable_get('painters_search_auto_suggest_limit', 4),
+    ),
+      ), 'setting');
+}
+
+/**
+ * Implements hook_library_alter().
+ */
+function painters_deployment_library_alter(&$module_libraries, &$module) {
+  global $theme_key;
+  if ($theme_key == 'painters') {
+    // Ticket is not signed off!
+    // $path = drupal_get_path('theme', 'painters');
+    // $module_libraries['jquery']['js']['misc/jquery.js']['data'] = $path . '/assets/toolkit/scripts/toolkit.js';
+    // $module_libraries['jquery']['version'] ='2.2.4';
+  }
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function painters_deployment_block_info() {
+  $blocks['consumer_link'] = array(
+    'info' => t('consumer link block'),
+  );
+  $blocks['article_new_block'] = array(
+    'info' => t('Article New block'),
+  );
+  $blocks['store_promo_article_block'] = array(
+    'info' => t('Article store promo block'),
+  );
+  $blocks['article_new_block_all_advice'] = array(
+    'info' => t('Article New block All advice'),
+  );
+  $blocks['all_advice_filters'] = array(
+    'info' => t('Show me articles for All advice'),
+  );
+  $blocks['delete_account_success'] = array(
+    'info' => t('Delete user account success'),
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function painters_deployment_block_view($delta = '') {
+  $block = array();
+
+  switch ($delta) {
+    case 'consumer_link':
+      $block['subject'] = t('');
+      $block['content'] = consumer_link_contents();
+      break;
+
+    case 'article_new_block':
+      $variables = array();
+      $variables = variable_get('new_article_block');
+      $variables = array_slice($variables, 0, 4);
+      $block['content'] = theme('new_article_block_display', array(
+        'article_list' => $variables,
+      ));
+      break;
+
+    case 'store_promo_article_block':
+      $variables = array();
+      $variables = variable_get('store_promo_article_block');
+      $variables = array_slice($variables, 0, 3);
+      $block['content'] = theme('store_promo_article_block_display', array(
+        'promo_article_list' => $variables,
+      ));
+      break;
+
+    case 'article_new_block_all_advice':
+      $variables = array();
+      $variables = variable_get('new_article_block_all_advice');
+      $variables = array_slice($variables, 0, 4);
+      $block['content'] = theme('new_article_block_display_all_advice', array(
+        'article_list_all_advice' => $variables,
+      ));
+      break;
+
+    case 'all_advice_filters':
+      $block['subject'] = t('');
+      $block['content'] = all_advice_page_filters();
+      break;
+
+    case 'delete_account_success':
+      $block['subject'] = t('Your account has been deleted');
+      $block['content'] = delete_account_success_page();
+      break;
+  }
+  return $block;
+}
+
+/**
+ * Implements hook_page_alter().
+ *
+ * Disable JS & CSS compression for admin pages.
+ */
+function painters_deployment_page_alter(&$page) {
+  $arg = arg();
+  // && isset($arg[1]) || (strpos(drupal_get_path_alias(), 'admin') === 0)
+  if ($arg[0] === 'admin' || (isset($arg[2]) && $arg[2] == 'edit') || ($arg[0] == 'node' && isset($arg[1]) && $arg[1] == 'add')) {
+    $GLOBALS['conf']['preprocess_css'] = FALSE;
+    $GLOBALS['conf']['preprocess_js'] = FALSE;
+  }
+}
+
+/**
+ * Provides HTML markup for consumer site link.
+ */
+function consumer_link_contents() {
+  $link_consumer = variable_get('consumer_site_url');
+  if (isset($link_consumer) && !empty($link_consumer)) {
+    $content = "<div class=\"consumer-site-link\">";
+    $content .= "<a class=\"consumer\" title=\"" . t('consumers') . "\" href=\"" . $link_consumer . "\" target=\"_blank\">" . t('consumers') . "</a>";
+    $content .= " | ";
+    $content .= "<a class=\"disabled\" title=\"" . t('professionals') . "\">" . t('professionals') . "</a>";
+    $content .= "</div>";
+  }
+  else {
+    $content = '';
+  }
+  return $content;
+}
+
+/**
+ * To manage static pages
+ */
+function create_static_pages() {
+  create_cookie_policy();
+  create_terms_and_conditions();
+  create_privacy_statement();
+  create_terms_of_use();
+  create_disclaimer();
+  create_second_layer_privacy_policy();
+}
+
+/**
+ * To create cookie policy page as basic page
+ */
+function create_cookie_policy() {
+  $node = new stdClass();
+  $node->type = 'page';
+  node_object_prepare($node);
+  $node->title = 'Cookie Policy';
+  $node->language = 'und';
+  $node->status = 1;
+  $node->uid = 1;
+  $node->body[$node->language][0]['value'] = '<div class="container vertical-top vertical-bottom">
+			<div class="col-xs-12 container-white shadow-bottom">
+				<!--
+				<div class="col-sm-3 sm-hide">
+					<div class="anker-nav-container">
+						<ul class="anker-nav">
+							<li class="active"><a href="#genterms">Cookie Policy</a></li>
+							<li><a href="#product">Product offered</a></li>
+							<li><a href="#ordering">Ordering process and information of the contract</a></li>
+							<li><a href="#prices">Prices, delivery costs and payment</a></li>
+						</ul>
+						<svg class="icon icon-arrow-down sm-hide"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-arrow-down_16px"></use></svg>
+					</div>
+				</div>
+				-->
+				<div class="col-sm-10 col-sm-offset-1">
+					<div class="row vertical-top vertical-bottom">
+						<a name="genterms"></a>
+						<h1 class="h2 vertical-bottom vertical-top">Cookie Policy</h1>
+						<p>
+							Component tekst the purchaser is entitled to notify the company that he has decided not to proceed with the purchase, without payment of a penalty and without giving reasons, within the 14 calendar days from the day following the delivery of the item or entering into the service agreement.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<h3>Business &amp; visiting address:</h3>
+						<p>
+							Rijksstraatweg 31<br>
+							2171 AJ Sassenheim, Netherlands<br>
+							CoC number: 28080295<br>
+							VAT identification number: NL807320407B01<br>
+							Bank account number: NL64INGB0654545944<br>
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<h3>AkzoNobel Global Change</h3>
+						<ul>
+							<li><a target="_self" href="#" class="tl-secondary">About us</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">News center</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Our key markets</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Sustainability</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Innovation</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Investors</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Corporate governance</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Careers</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Home</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Locations</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Sitemap</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Contact</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Website Owner</a></li>
+							<li><a target="_blank" href="http://loremipsum.com" class="tl-secondary">unvisited test link (remove after testing)</a></li>
+						</ul>
+					</div>
+					<div class="row vertical-bottom">
+						<table class="table-responsive">
+							<thead>
+								<tr>
+									<th class="numeric">Name of cookie</th>
+									<th class="numeric">Purpose of cookie</th>
+									<th class="numeric">Retention Period</th>
+									<th class="numeric">Operated websites</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td data-title="Name of cookie Name of cookie"><div>_utma</div></td>
+									<td data-title="Purpose of cookie"><div>This cookie keeps track of the number of times a visitor a has been to the site pertaining to the cookie, when its first visit was, and..4</div></td>
+									<td class="numeric" data-title="Retention Period"><div>2 years</div></td>
+									<td class="numeric" data-title="Operated websites"><div><a title="akzonobel" href="#">akzonobel.com</a></div></td>
+								</tr>
+								<tr>
+									<td data-title="Name of cookie"><div>_utma4</div></td>
+									<td data-title="Purpose of cookie"><div>This cookie keeps track of the number of times a visitor a has been to the site pertaining to the cookie, when its first visit was, and..4</div></td>
+									<td class="numeric" data-title="Retention Period"><div>4 years</div></td>
+									<td class="numeric" data-title="Operated websites"><div><a title="akzonobel" href="#">akzonobel.com/4</a></div></td>
+								</tr>
+								<tr>
+									<td data-title="Name of cookie"><div>_utma8</div></td>
+									<td data-title="Purpose of cookie"><div>This cookie keeps track of the number of times a visitor a has been to the site pertaining to the cookie, when its first visit was, and..8</div></td>
+									<td class="numeric" data-title="Retention Period"><div>8 years</div></td>
+									<td class="numeric" data-title="Operated websites"><div><a title="akzonobel" href="#">akzonobel.com/8</a></div></td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>';
+  $node->body[$node->language][0]['format'] = 'full_html';
+  $path = t('cookie-policy');
+  $node->path = array(
+    'alias' => $path,
+  );
+  // Prepare node for saving
+  $node = node_submit($node);
+  node_save($node);
+}
+
+/**
+ * To create terms and conditions page as basic page
+ */
+function create_terms_and_conditions() {
+  $node = new stdClass();
+  $node->type = 'page';
+  node_object_prepare($node);
+  $node->title = 'General terms and conditions';
+  $node->language = 'und';
+  $node->uid = 1;
+  $node->status = 1;
+  $node->body[$node->language][0]['value'] = '<div class="container vertical-top vertical-bottom">
+			<div class="col-xs-12 container-white shadow-bottom">
+				<!--
+				<div class="col-sm-3 sm-hide">
+					<div class="anker-nav-container">
+						<ul class="anker-nav">
+							<li class="active"><a href="#genterms">General terms and conditions</a></li>
+							<li><a href="#product">Product offered</a></li>
+							<li><a href="#ordering">Ordering process and information of the contract</a></li>
+							<li><a href="#prices">Prices, delivery costs and payment</a></li>
+						</ul>
+						<svg class="icon icon-arrow-down sm-hide"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-arrow-down_16px"></use></svg>
+					</div>
+				</div>
+				-->
+				<div class="col-sm-10 col-sm-offset-1">
+					<div class="row vertical-top vertical-bottom">
+						<a name="genterms"></a>
+						<h1 class="h2 vertical-bottom vertical-top">General Terms and Conditions</h1>
+						<p>
+							Component tekst the purchaser is entitled to notify the company that he has decided not to proceed with the purchase, without payment of a penalty and without giving reasons, within the 14 calendar days from the day following the delivery of the item or entering into the service agreement.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<h3>Business &amp; visiting address:</h3>
+						<p>
+							Rijksstraatweg 31<br>
+							2171 AJ Sassenheim, Netherlands<br>
+							CoC number: 28080295<br>
+							VAT identification number: NL807320407B01<br>
+							Bank account number: NL64INGB0654545944<br>
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<h3>AkzoNobel Global Change</h3>
+						<ul>
+							<li><a target="_self" href="#" class="tl-secondary">About us</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">News center</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Our key markets</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Sustainability</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Innovation</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Investors</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Corporate governance</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Careers</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Home</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Locations</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Sitemap</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Contact</a></li>
+							<li><a target="_self" href="#" class="tl-secondary">Website Owner</a></li>
+							<li><a target="_blank" href="http://loremipsum.com" class="tl-secondary">unvisited test link (remove after testing)</a></li>
+						</ul>
+					</div>
+					<div class="row vertical-bottom">
+						<table class="table-responsive">
+							<thead>
+								<tr>
+									<th class="numeric">Name of cookie</th>
+									<th class="numeric">Purpose of cookie</th>
+									<th class="numeric">Retention Period</th>
+									<th class="numeric">Operated websites</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td data-title="Name of cookie Name of cookie"><div>_utma</div></td>
+									<td data-title="Purpose of cookie"><div>This cookie keeps track of the number of times a visitor a has been to the site pertaining to the cookie, when its first visit was, and..4</div></td>
+									<td class="numeric" data-title="Retention Period"><div>2 years</div></td>
+									<td class="numeric" data-title="Operated websites"><div><a title="akzonobel" href="#">akzonobel.com</a></div></td>
+								</tr>
+								<tr>
+									<td data-title="Name of cookie"><div>_utma4</div></td>
+									<td data-title="Purpose of cookie"><div>This cookie keeps track of the number of times a visitor a has been to the site pertaining to the cookie, when its first visit was, and..4</div></td>
+									<td class="numeric" data-title="Retention Period"><div>4 years</div></td>
+									<td class="numeric" data-title="Operated websites"><div><a title="akzonobel" href="#">akzonobel.com/4</a></div></td>
+								</tr>
+								<tr>
+									<td data-title="Name of cookie"><div>_utma8</div></td>
+									<td data-title="Purpose of cookie"><div>This cookie keeps track of the number of times a visitor a has been to the site pertaining to the cookie, when its first visit was, and..8</div></td>
+									<td class="numeric" data-title="Retention Period"><div>8 years</div></td>
+									<td class="numeric" data-title="Operated websites"><div><a title="akzonobel" href="#">akzonobel.com/8</a></div></td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>';
+  $node->body[$node->language][0]['format'] = 'full_html';
+  $path = t('general-terms-and-conditions');
+  $node->path = array(
+    'alias' => $path,
+  );
+  // Prepare node for saving
+  $node = node_submit($node);
+  node_save($node);
+}
+
+/**
+ * To create Provacy policy as basic page
+ */
+function create_privacy_statement() {
+  $node = new stdClass();
+  $node->type = 'page';
+  node_object_prepare($node);
+  $node->title = 'Privacy Statement';
+  $node->language = 'und';
+  $node->uid = 1;
+  $node->status = 1;
+  $node->body[$node->language][0]['value'] = '		<div class="container vertical-top vertical-bottom">
+			<div class="col-xs-12 container-white shadow-bottom">
+				<!--
+				<div class="col-sm-3 sm-hide">
+					<div class="anker-nav-container">
+						<ul class="anker-nav">
+							<li class="active"><a href="#privacystatement">Privacy Statement</a></li>
+							<li><a href="#whatinformationdowecollect">What information do we collect?</a></li>
+							<li><a href="#cookies">Cookies</a></li>
+							<li><a href="#howdoweusethisinformation">How do we use this information?</a></li>
+							<li><a href="#willwesharethiswithoutsideparties">Will we share this with outside parties?</a></li>
+							<li><a href="#whataboutsensitivepersonaldata">What about sensitive personal data?</a></li>
+							<li><a href="#securityandretentionperiod">Security and retention period</a></li>
+							<li><a href="#doyouhaveaccesstoyourinformation">Do you have access to your information?</a></li>
+							<li><a href="#googleanalyticstermsofservice">Google Analytics terms of service</a></li>
+						</ul>
+						<svg class="icon icon-arrow-down sm-hide"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-arrow-down_16px"></use></svg>
+					</div>
+				</div>
+				-->
+				<div class="col-sm-10 col-sm-offset-1">
+					<div class="row vertical-top vertical-bottom">
+						<a name="privacystatement"></a>
+						<h1 class="h2 vertical-bottom vertical-top">Privacy Statement</h1>
+						<h3>Your privacy on this website</h3>
+						<p>
+							This site is operated and maintained by the AkzoNobel entity referred to in the "Website Owner" section of this website (hereafter "AkzoNobel" or "we"). AkzoNobel is the controller of the processing of all personal data collected through this website.
+							<br><br>
+							The primary purpose of this website is to be a dynamic resource and business tool so that we can offer our services to you in the best possible way. We want you to feel secure when visiting our site and are committed to maintaining your privacy when doing so. The following provides an overview of how we protect your privacy during your visit, based on and in accordance with applicable privacy legislation.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="whatinformationdowecollect"></a>
+						<h3>What information do we collect?</h3>
+						<p>
+							Information on this website is collected in two ways: directly (e.g. when you provide information on various pages of this website) and indirectly (e.g. through our site\'s technology). This is further explained below.
+							<br><br>
+							We collect information that you voluntarily submit it to us, e.g. by completing forms on the website, by registering for a conference or by participating in an online survey. When we collect this type of information, we will notify you as to why we are asking for information and how this information will be used. It is completely up to you whether or not you want to provide it. The following categories of personal data may be collected: name, contact details and other information that you enter on forms on the website.
+							<br><br>
+							One example of information we collect indirectly is through our Internet access logs. When you access this website, your Internet address is automatically collected and is placed in our Internet access logs.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="cookies"></a>
+						<h3>Cookies</h3>
+						<p>
+							We also collect information through the use of cookies. Cookies are small files of information which save and retrieve information about your visit to this website - for example, how you entered our site, how you navigated through the site, and what information was of interest to you. The cookies we use identify you merely as a number. If you are uncomfortable regarding cookies use, please keep in mind you can disable cookies on your computer by changing the settings in preferences or options menu in your browser. However, if your browser does not accept cookies from this website, you may not be able to access or use all features of this website.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="howdoweusethisinformation"></a>
+						<h3>How do we use this information?</h3>
+						<p>
+							We use your personal data to maintain this website such as answering your questions, processing your enrolment for a conference and sending information to you regarding any current or future activities of AkzoNobel. If legally required, we will obtain your permission, before sending you such information. We analyze the data which is collected indirectly to determine what is most effective about our site, to help us identify ways to improve it, and eventually, to determine how we can tailor this website to make it more effective. We may also use data for other purposes, which we would describe to you at the point we collect the information.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="willwesharethiswithoutsideparties"></a>
+						<h3>Will we share this with outside parties?</h3>
+						<p>
+							As a global organization, data we collect may be transferred internationally throughout AkzoNobel\'s worldwide organization. We will not sell individual information and will share it only with our advisors. There will be other times when we need to share information, for example, in the case of an event where we need to provide our caterer with meal preference information. But again, before you submit any information, we will notify you as to why we are asking for specific information and it is completely up to you whether or not you want to provide it.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="whataboutsensitivepersonaldata"></a>
+						<h3>What about sensitive personal data?</h3>
+						<p>
+							We do not generally seek to collect sensitive personal data through this site. If we do seek to collect such data, we will ask you to consent to our proposed uses of the data. We may also collect some sensitive personal data incidentally. By providing us with unsolicited sensitive personal data, you consent to our using the data subject to applicable law as described in this Privacy and Cookie Statement. The references to "sensitive personal data" are to the various categories of personal data identified by European and other data privacy laws as requiring special treatment, including in some circumstances the need to obtain explicit consent. These categories comprise personal identity numbers, personal data about personality and private life, racial or ethnic origin, nationality, political opinions, membership of political parties or movements, religious, philosophical or other similar beliefs, membership of a trade union or profession or trade association, physical or mental health, genetic code, addictions, sexual life, property matters or criminal record (including information about suspected criminal activities).
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="securityandretentionperiod"></a>
+						<h3>Security and retention period</h3>
+						<p>
+							The transfer, storage and processing of personal data collected through this website is secured by means of current, usual technical measures. In general, AkzoNobel will not retain the personal data that is obtained through this website for a period longer than is necessary for achieving the purposes for which they were collected, or as long as the law prescribes.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="doyouhaveaccesstoyourinformation"></a>
+						<h3>Do you have access to your information?</h3>
+						<p>
+							Based on this Privacy and Cookie Statement, you are entitled to know whether we hold information about you and, if we do, to have access to that information and require it to be corrected if it is inaccurate. You also have the right to have your personal data erased or blocked if any of the processing of it is in violation with the applicable privacy legislation.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="googleanalyticstermsofservice"></a>
+						<h3>Google Analytics terms of service</h3>
+						<p>
+							This website uses Google Analytics, a web analytics service provided by Google, Inc. ("Google"). Google Analytics uses "cookies", which are text files placed on your computer, to help the website analyze how users use the site. The information generated by the cookie about your use of the website (including your IP address) will be transmitted to and stored by Google on servers in the United States . Google will use this information for the purpose of evaluating your use of the website, compiling reports on website activity for website operators and providing other services relating to website activity and internet usage. Google may also transfer this information to third parties where required to do so by law, or where such third parties process the information on Google\'s behalf. Google will not associate your IP address with any other data held by Google. You may refuse the use of cookies by selecting the appropriate settings on your browser, however please note that if you do this you may not be able to use the full functionality of this website. By using this website, you consent to the processing of data about you by Google in the manner and for the purposes set out above.
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>';
+  $node->body[$node->language][0]['format'] = 'full_html';
+  $path = t('privacy-statement');
+  $node->path = array(
+    'alias' => $path,
+  );
+  // Prepare node for saving
+  $node = node_submit($node);
+  node_save($node);
+}
+
+/**
+ * To create terms of use page as Basic page
+ */
+function create_terms_of_use() {
+  $node = new stdClass();
+  $node->type = 'page';
+  node_object_prepare($node);
+  $node->title = 'Terms of use';
+  $node->language = 'und';
+  $node->uid = 1;
+  $node->status = 1;
+  $node->body[$node->language][0]['value'] = '		<div class="container vertical-top vertical-bottom">
+			<div class="col-xs-12 container-white shadow-bottom">
+				<!--
+				<div class="col-sm-3 sm-hide">
+					<div class="anker-nav-container">
+						<ul class="anker-nav">
+							<li class="active"><a href="#privacystatement">Terms of use</a></li>
+							<li><a href="#whatinformationdowecollect">What information do we collect?</a></li>
+							<li><a href="#cookies">Cookies</a></li>
+							<li><a href="#howdoweusethisinformation">How do we use this information?</a></li>
+							<li><a href="#willwesharethiswithoutsideparties">Will we share this with outside parties?</a></li>
+							<li><a href="#whataboutsensitivepersonaldata">What about sensitive personal data?</a></li>
+							<li><a href="#securityandretentionperiod">Security and retention period</a></li>
+							<li><a href="#doyouhaveaccesstoyourinformation">Do you have access to your information?</a></li>
+							<li><a href="#googleanalyticstermsofservice">Google Analytics terms of service</a></li>
+						</ul>
+						<svg class="icon icon-arrow-down sm-hide"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-arrow-down_16px"></use></svg>
+					</div>
+				</div>
+				-->
+				<div class="col-sm-10 col-sm-offset-1">
+					<div class="row vertical-top vertical-bottom">
+						<a name="privacystatement"></a>
+						<h1 class="h2 vertical-bottom vertical-top">Terms of use</h1>
+						<h3>Your privacy on this website</h3>
+						<p>
+							This site is operated and maintained by the AkzoNobel entity referred to in the "Website Owner" section of this website (hereafter "AkzoNobel" or "we"). AkzoNobel is the controller of the processing of all personal data collected through this website.
+							<br><br>
+							The primary purpose of this website is to be a dynamic resource and business tool so that we can offer our services to you in the best possible way. We want you to feel secure when visiting our site and are committed to maintaining your privacy when doing so. The following provides an overview of how we protect your privacy during your visit, based on and in accordance with applicable privacy legislation.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="whatinformationdowecollect"></a>
+						<h3>What information do we collect?</h3>
+						<p>
+							Information on this website is collected in two ways: directly (e.g. when you provide information on various pages of this website) and indirectly (e.g. through our site\'s technology). This is further explained below.
+							<br><br>
+							We collect information that you voluntarily submit it to us, e.g. by completing forms on the website, by registering for a conference or by participating in an online survey. When we collect this type of information, we will notify you as to why we are asking for information and how this information will be used. It is completely up to you whether or not you want to provide it. The following categories of personal data may be collected: name, contact details and other information that you enter on forms on the website.
+							<br><br>
+							One example of information we collect indirectly is through our Internet access logs. When you access this website, your Internet address is automatically collected and is placed in our Internet access logs.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="cookies"></a>
+						<h3>Cookies</h3>
+						<p>
+							We also collect information through the use of cookies. Cookies are small files of information which save and retrieve information about your visit to this website - for example, how you entered our site, how you navigated through the site, and what information was of interest to you. The cookies we use identify you merely as a number. If you are uncomfortable regarding cookies use, please keep in mind you can disable cookies on your computer by changing the settings in preferences or options menu in your browser. However, if your browser does not accept cookies from this website, you may not be able to access or use all features of this website.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="howdoweusethisinformation"></a>
+						<h3>How do we use this information?</h3>
+						<p>
+							We use your personal data to maintain this website such as answering your questions, processing your enrolment for a conference and sending information to you regarding any current or future activities of AkzoNobel. If legally required, we will obtain your permission, before sending you such information. We analyze the data which is collected indirectly to determine what is most effective about our site, to help us identify ways to improve it, and eventually, to determine how we can tailor this website to make it more effective. We may also use data for other purposes, which we would describe to you at the point we collect the information.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="willwesharethiswithoutsideparties"></a>
+						<h3>Will we share this with outside parties?</h3>
+						<p>
+							As a global organization, data we collect may be transferred internationally throughout AkzoNobel\'s worldwide organization. We will not sell individual information and will share it only with our advisors. There will be other times when we need to share information, for example, in the case of an event where we need to provide our caterer with meal preference information. But again, before you submit any information, we will notify you as to why we are asking for specific information and it is completely up to you whether or not you want to provide it.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="whataboutsensitivepersonaldata"></a>
+						<h3>What about sensitive personal data?</h3>
+						<p>
+							We do not generally seek to collect sensitive personal data through this site. If we do seek to collect such data, we will ask you to consent to our proposed uses of the data. We may also collect some sensitive personal data incidentally. By providing us with unsolicited sensitive personal data, you consent to our using the data subject to applicable law as described in this Privacy and Cookie Statement. The references to "sensitive personal data" are to the various categories of personal data identified by European and other data privacy laws as requiring special treatment, including in some circumstances the need to obtain explicit consent. These categories comprise personal identity numbers, personal data about personality and private life, racial or ethnic origin, nationality, political opinions, membership of political parties or movements, religious, philosophical or other similar beliefs, membership of a trade union or profession or trade association, physical or mental health, genetic code, addictions, sexual life, property matters or criminal record (including information about suspected criminal activities).
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="securityandretentionperiod"></a>
+						<h3>Security and retention period</h3>
+						<p>
+							The transfer, storage and processing of personal data collected through this website is secured by means of current, usual technical measures. In general, AkzoNobel will not retain the personal data that is obtained through this website for a period longer than is necessary for achieving the purposes for which they were collected, or as long as the law prescribes.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="doyouhaveaccesstoyourinformation"></a>
+						<h3>Do you have access to your information?</h3>
+						<p>
+							Based on this Privacy and Cookie Statement, you are entitled to know whether we hold information about you and, if we do, to have access to that information and require it to be corrected if it is inaccurate. You also have the right to have your personal data erased or blocked if any of the processing of it is in violation with the applicable privacy legislation.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="googleanalyticstermsofservice"></a>
+						<h3>Google Analytics terms of service</h3>
+						<p>
+							This website uses Google Analytics, a web analytics service provided by Google, Inc. ("Google"). Google Analytics uses "cookies", which are text files placed on your computer, to help the website analyze how users use the site. The information generated by the cookie about your use of the website (including your IP address) will be transmitted to and stored by Google on servers in the United States . Google will use this information for the purpose of evaluating your use of the website, compiling reports on website activity for website operators and providing other services relating to website activity and internet usage. Google may also transfer this information to third parties where required to do so by law, or where such third parties process the information on Google\'s behalf. Google will not associate your IP address with any other data held by Google. You may refuse the use of cookies by selecting the appropriate settings on your browser, however please note that if you do this you may not be able to use the full functionality of this website. By using this website, you consent to the processing of data about you by Google in the manner and for the purposes set out above.
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>';
+  $node->body[$node->language][0]['format'] = 'full_html';
+  $path = t('terms-of-use');
+  $node->path = array(
+    'alias' => $path,
+  );
+  // Prepare node for saving
+  $node = node_submit($node);
+  node_save($node);
+}
+
+/*
+ * Create Disclaimer content as basic page
+ */
+
+function create_disclaimer() {
+  $node = new stdClass();
+  $node->type = 'page';
+  node_object_prepare($node);
+  $node->title = 'Disclaimer';
+  $node->language = 'und';
+  $node->uid = 1;
+  $node->status = 1;
+  $node->body[$node->language][0]['value'] = '<div class="container vertical-top vertical-bottom">
+			<div class="col-xs-12 container-white shadow-bottom">
+				<!--
+				<div class="col-sm-3 sm-hide">
+					<div class="anker-nav-container">
+						<ul class="anker-nav">
+							<li class="active"><a href="#privacystatement">Disclaimer</a></li>
+							<li><a href="#whatinformationdowecollect">What information do we collect?</a></li>
+							<li><a href="#cookies">Cookies</a></li>
+							<li><a href="#howdoweusethisinformation">How do we use this information?</a></li>
+							<li><a href="#willwesharethiswithoutsideparties">Will we share this with outside parties?</a></li>
+							<li><a href="#whataboutsensitivepersonaldata">What about sensitive personal data?</a></li>
+							<li><a href="#securityandretentionperiod">Security and retention period</a></li>
+							<li><a href="#doyouhaveaccesstoyourinformation">Do you have access to your information?</a></li>
+							<li><a href="#googleanalyticstermsofservice">Google Analytics terms of service</a></li>
+						</ul>
+						<svg class="icon icon-arrow-down sm-hide"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-arrow-down_16px"></use></svg>
+					</div>
+				</div>
+				-->
+				<div class="col-sm-10 col-sm-offset-1">
+					<div class="row vertical-top vertical-bottom">
+						<a name="privacystatement"></a>
+						<h1 class="h2 vertical-bottom vertical-top">Disclaimer</h1>
+						<h3>Your privacy on this website</h3>
+						<p>
+							This site is operated and maintained by the AkzoNobel entity referred to in the "Website Owner" section of this website (hereafter "AkzoNobel" or "we"). AkzoNobel is the controller of the processing of all personal data collected through this website.
+							<br><br>
+							The primary purpose of this website is to be a dynamic resource and business tool so that we can offer our services to you in the best possible way. We want you to feel secure when visiting our site and are committed to maintaining your privacy when doing so. The following provides an overview of how we protect your privacy during your visit, based on and in accordance with applicable privacy legislation.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="whatinformationdowecollect"></a>
+						<h3>What information do we collect?</h3>
+						<p>
+							Information on this website is collected in two ways: directly (e.g. when you provide information on various pages of this website) and indirectly (e.g. through our site\'s technology). This is further explained below.
+							<br><br>
+							We collect information that you voluntarily submit it to us, e.g. by completing forms on the website, by registering for a conference or by participating in an online survey. When we collect this type of information, we will notify you as to why we are asking for information and how this information will be used. It is completely up to you whether or not you want to provide it. The following categories of personal data may be collected: name, contact details and other information that you enter on forms on the website.
+							<br><br>
+							One example of information we collect indirectly is through our Internet access logs. When you access this website, your Internet address is automatically collected and is placed in our Internet access logs.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="cookies"></a>
+						<h3>Cookies</h3>
+						<p>
+							We also collect information through the use of cookies. Cookies are small files of information which save and retrieve information about your visit to this website - for example, how you entered our site, how you navigated through the site, and what information was of interest to you. The cookies we use identify you merely as a number. If you are uncomfortable regarding cookies use, please keep in mind you can disable cookies on your computer by changing the settings in preferences or options menu in your browser. However, if your browser does not accept cookies from this website, you may not be able to access or use all features of this website.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="howdoweusethisinformation"></a>
+						<h3>How do we use this information?</h3>
+						<p>
+							We use your personal data to maintain this website such as answering your questions, processing your enrolment for a conference and sending information to you regarding any current or future activities of AkzoNobel. If legally required, we will obtain your permission, before sending you such information. We analyze the data which is collected indirectly to determine what is most effective about our site, to help us identify ways to improve it, and eventually, to determine how we can tailor this website to make it more effective. We may also use data for other purposes, which we would describe to you at the point we collect the information.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="willwesharethiswithoutsideparties"></a>
+						<h3>Will we share this with outside parties?</h3>
+						<p>
+							As a global organization, data we collect may be transferred internationally throughout AkzoNobel\'s worldwide organization. We will not sell individual information and will share it only with our advisors. There will be other times when we need to share information, for example, in the case of an event where we need to provide our caterer with meal preference information. But again, before you submit any information, we will notify you as to why we are asking for specific information and it is completely up to you whether or not you want to provide it.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="whataboutsensitivepersonaldata"></a>
+						<h3>What about sensitive personal data?</h3>
+						<p>
+							We do not generally seek to collect sensitive personal data through this site. If we do seek to collect such data, we will ask you to consent to our proposed uses of the data. We may also collect some sensitive personal data incidentally. By providing us with unsolicited sensitive personal data, you consent to our using the data subject to applicable law as described in this Privacy and Cookie Statement. The references to "sensitive personal data" are to the various categories of personal data identified by European and other data privacy laws as requiring special treatment, including in some circumstances the need to obtain explicit consent. These categories comprise personal identity numbers, personal data about personality and private life, racial or ethnic origin, nationality, political opinions, membership of political parties or movements, religious, philosophical or other similar beliefs, membership of a trade union or profession or trade association, physical or mental health, genetic code, addictions, sexual life, property matters or criminal record (including information about suspected criminal activities).
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="securityandretentionperiod"></a>
+						<h3>Security and retention period</h3>
+						<p>
+							The transfer, storage and processing of personal data collected through this website is secured by means of current, usual technical measures. In general, AkzoNobel will not retain the personal data that is obtained through this website for a period longer than is necessary for achieving the purposes for which they were collected, or as long as the law prescribes.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="doyouhaveaccesstoyourinformation"></a>
+						<h3>Do you have access to your information?</h3>
+						<p>
+							Based on this Privacy and Cookie Statement, you are entitled to know whether we hold information about you and, if we do, to have access to that information and require it to be corrected if it is inaccurate. You also have the right to have your personal data erased or blocked if any of the processing of it is in violation with the applicable privacy legislation.
+						</p>
+					</div>
+
+					<div class="row vertical-bottom">
+						<a name="googleanalyticstermsofservice"></a>
+						<h3>Google Analytics terms of service</h3>
+						<p>
+							This website uses Google Analytics, a web analytics service provided by Google, Inc. ("Google"). Google Analytics uses "cookies", which are text files placed on your computer, to help the website analyze how users use the site. The information generated by the cookie about your use of the website (including your IP address) will be transmitted to and stored by Google on servers in the United States . Google will use this information for the purpose of evaluating your use of the website, compiling reports on website activity for website operators and providing other services relating to website activity and internet usage. Google may also transfer this information to third parties where required to do so by law, or where such third parties process the information on Google\'s behalf. Google will not associate your IP address with any other data held by Google. You may refuse the use of cookies by selecting the appropriate settings on your browser, however please note that if you do this you may not be able to use the full functionality of this website. By using this website, you consent to the processing of data about you by Google in the manner and for the purposes set out above.
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>';
+  $node->body[$node->language][0]['format'] = 'full_html';
+  $path = t('disclaimer');
+  $node->path = array(
+    'alias' => $path,
+  );
+  // Prepare node for saving
+  $node = node_submit($node);
+  node_save($node);
+}
+
+/**
+ * Creates 404 error page and sets variable
+ */
+function create_404_error_page() {
+  $node = new stdClass();
+  $node->type = 'painters_article';
+  node_object_prepare($node);
+  $node->title = '404 (Page not found)';
+  $node->language = 'und';
+  $node->uid = 1;
+  $node->status = 1;
+  $filepath = drupal_realpath('profiles/painters/themes/custom/painters/assets/toolkit/images/bg-header.jpg');
+  // Create managed File object and associate with Image field.
+  $file = (object) array(
+        'uid' => 1,
+        'uri' => $filepath,
+        'filemime' => file_get_mimetype($filepath),
+        'status' => 1,
+  );
+  $file = file_copy($file, 'public://');
+  $node->field_hero_image[LANGUAGE_NONE][0] = (array) $file;
+  $node->body[$node->language][0]['value'] = '<h1>Oops!</h1><p><strong>Error code: 404</strong><br>We canÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢t seem to find the page you are looking for.</p>';
+  $node->body[$node->language][0]['format'] = 'full_html';
+  $path = t('404');
+  $node->path = array(
+    'alias' => $path,
+  );
+  // Prepare node for saving
+  $node = node_submit($node);
+  node_save($node);
+  variable_set('site_404', '404');
+}
+
+/**
+ * Create footer menus.
+ */
+function create_footer_menus() {
+  // create footer menu
+  $menu = array(
+    // Drupal menu machine name
+    'menu_name' => 'menu-footer-menu',
+    // Drupal menu display name
+    'title' => 'footer menus',
+    'description' => 'footer-menus',
+      // Optional menu description
+  );
+  menu_save($menu);
+
+  // create footer bottom menu
+  $menu = array(
+    // Drupal menu machine name
+    'menu_name' => 'menu-footer-bottom',
+    // Drupal menu display name
+    'title' => 'Footer bottom menus',
+    'description' => 'Footer bottom menus',
+      // Optional menu description
+  );
+  menu_save($menu);
+
+  // Create footer menu links
+  $links_footer_menu = array();
+  $links_footer_menu = array(
+    'Terms and conditions' => '<front>',
+    'Terms of use' => '<front>',
+    'Cookie policy' => '<front>',
+    'Privacy policy' => '<front>',
+    'Disclaimer' => '<front>',
+  );
+  $menu_footer_menu_name = 'menu-footer-menu';
+  _create__footer_menu_items($links_footer_menu, $menu_footer_menu_name);
+
+  // Create footer bottom menu links
+  $links_footerbtm_menu = array();
+  $links_footerbtm_menu = array(
+    'Sikkens voor consumenten' => '<front>',
+    'Timmerindustrie' => '<front>',
+    'Autolakken' => '<front>',
+    'Sikkens Crafco' => '<front>',
+  );
+  $menu_footerbtm_menu_name = 'menu-footer-bottom';
+  _create__footer_menu_items($links_footerbtm_menu, $menu_footerbtm_menu_name);
+}
+
+/**
+ * Implementation of _create__footer_menu_items
+ */
+function _create__footer_menu_items($menu_items, $menu_name) {
+  // Get the menu items details
+  $i = 0;
+  foreach ($menu_items as $key => $value) {
+    $item = array(
+      'link_path' => $value,
+      'link_title' => $key,
+      'menu_name' => $menu_name,
+      'weight' => $i,
+      'expanded' => 0,
+    );
+    // is given other properties, including the item ID.
+    $item_id = menu_link_save($item);
+    $i++;
+  }
+  return $item_id;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function painters_deployment_theme() {
+  return array(
+    'new_article_list' => array(
+      'render element' => 'form',
+    ),
+    'new_article_block_display' => array(
+      'variables' => array(
+        'article_list' => NULL,
+      ),
+    ),
+    'store_promo_article_list' => array(
+      'render element' => 'form',
+    ),
+    'store_promo_article_block_display' => array(
+      'variables' => array(
+        'promo_article_list' => NULL,
+      ),
+    ),
+    'new_article_block_display_all_advice' => array(
+      'variables' => array(
+        'article_list_all_advice' => NULL,
+      ),
+    ),
+    'new_article_all_advice_list' => array(
+      'render element' => 'form',
+    ),
+    'user_account_delete_success' => array(
+      'variables' => array(
+        'info' => NULL,
+      ),
+    ),
+    'advice_support_overview_config_form' => array(
+      'render element' => 'form',
+    ),
+  );
+}
+
+/**
+ *
+ * @param <type> $vars
+ */
+function template_new_article_block_display($variables) {
+  return t('Articles');
+}
+
+/**
+ *
+ * @param <type> $vars
+ */
+function store_promo_article_block_display($variables) {
+  return t('Promo Articles');
+}
+
+/**
+ * All advice landing page creation
+ */
+function _create_landing_pages_all_advice() {
+  $options = array();
+  $options['title'] = 'Advice and Support All Advice';
+  $options['link_title'] = 'All Advice';
+  $options['description'] = 'Advice and Support All Advice page';
+  $options['sitemap_value'] = '40.00';
+  $options['path'] = t('advice');
+  _create_landing_pages_article_content($options);
+}
+
+/**
+ * Function to create a Advice and support category page
+ */
+function _create_landing_pages_advice_category_overview() {
+  $options = array();
+  // Landing Page for the advice and support business page.
+  $options['title'] = 'Advise and support business';
+  $options['link_title'] = 'Advice and Support business';
+  $options['description'] = 'Advice Support business';
+  $options['sitemap_value'] = '42.01';
+  $options['path'] = t('advice/knowledge/business');
+  _create_landing_pages_article_content($options);
+  // Landing Page for the advice and support clients page.
+  $options['title'] = 'Advise and support clients';
+  $options['link_title'] = 'Advice and Support clients';
+  $options['description'] = 'Advice Support clients';
+  $options['sitemap_value'] = '42.01';
+  $options['path'] = t('advice/knowledge/clients');
+  _create_landing_pages_article_content($options);
+  // Landing Page for the advice and support business page.
+  $options['title'] = 'Advise and support work';
+  $options['link_title'] = 'Advice and Support work';
+  $options['description'] = 'Advice Support work';
+  $options['sitemap_value'] = '42.01';
+  $options['path'] = t('advice/knowledge/work');
+  _create_landing_pages_article_content($options);
+}
+
+/**
+ * Create landing page planet possible overview page
+ */
+function _create_landing_pages_planet_support_overview() {
+  $options = array();
+  $options['title'] = 'Products Sustainability Overview';
+  $options['link_title'] = 'Products Sustainability';
+  $options['description'] = 'Products Sustainability';
+  $options['sitemap_value'] = '31';
+  $options['path'] = t('products/sustainability');
+  $nid = _create_landing_pages_article_content($options);
+  return $nid;
+}
+
+/**
+ * creating landing page for user account delete success
+ */
+function _create_landing_pages_delete_user_account_success() {
+  $options = array();
+  $options['title'] = 'Delete user account success';
+  $options['link_title'] = 'Delete user account success';
+  $options['description'] = 'Delete user account success';
+  $options['sitemap_value'] = '10.05';
+  $options['path'] = array(
+    'alias' => 'delete/account/success',
+  );
+  _create_landing_pages_article_content($options);
+}
+
+/**
+ * Implementation of _create_landing_pages_product_overview
+ */
+function _create_landing_pages_article_content($options) {
+  global $language;
+  $lang = ($language->language) ? $language->language : 'en';
+  // Create the landing page for : Product Overview page & all advice page
+  $node = new stdClass();
+  $node->type = 'panopoly_landing_page';
+  node_object_prepare($node);
+
+  $node->title = $options['title'];
+  $node->field_dlr_sitemap_value[$lang][0]['value'] = $options['sitemap_value'];
+  $node->language = $lang;
+  $node->status = 1;
+  $node->uid = 1;
+  /*
+   * $node->menu = array(
+   * 'enabled' => 1,
+   * 'mlid' => 0,
+   * 'module' => 'menu',
+   * 'hidden' => 0,
+   * 'has_children' => 0,
+   * 'customized' => 0,
+   * 'options' => array(),
+   * 'expanded' => 0,
+   * 'parent_depth_limit' => 8,
+   * 'link_title' => $options['link_title'],
+   * 'description' => $options['description'],
+   * 'parent' => 'main-menu:0',
+   * 'weight' => 0,
+   * 'plid' => 0,
+   * 'menu_name' => 'main-menu'
+   * );
+   * $path = $options['path'];
+   * $node->path = array('alias' => $path);
+   */
+
+  $node->path = $options['path'];
+  node_save($node);
+  return $node->nid;
+}
+
+/**
+ * Implements hook_FORM_ID_alter().
+ *
+ * Carousel content form alter.
+ */
+function painters_deployment_form_painters_article_node_form_alter(&$form, $form_state, $form_id) {
+  global $language;
+  $lang = $language->language;
+  // Adding JS file to handle conditional fields as conditional field contrib module not supports multifileds so
+  $module_path = drupal_get_path('module', 'painters_deployment');
+  drupal_add_js($module_path . '/js/painters_article_node_form.js');
+  unset($form['field_article_call_to_action']['und']['#options']['_none']);
+
+  // Moving Access Permissions field to Vertical tabs
+  $form['field_authenticated_user']['#type'] = 'fieldset';
+  $form['field_authenticated_user']['#collapsible'] = TRUE;
+  $form['field_authenticated_user']['#collapsed'] = TRUE;
+  $form['field_authenticated_user']['#weight'] = 12;
+  $form['field_authenticated_user']['#title'] = t('Access Permissions');
+  $form['field_authenticated_user']['#group'] = 'additional_settings';
+  $get_vid = _get_vocabulary_terms('advise_support_category');
+  $get_parentId = taxonomy_get_tree($get_vid['voc_id']);
+  foreach ($get_parentId as $term) {
+    $parentId = $term->parents;
+  }
+  if (isset($form['field_advice_support_pillers'][$lang])) {
+    unset($form['field_advice_support_pillers'][$lang]['#options'][$parentId[0]]);
+  }
+  else {
+    unset($form['field_advice_support_pillers'][LANGUAGE_NONE]['#options'][$parentId[0]]);
+  }
+}
+
+/**
+ * Saving EU COOKIE settings
+ */
+function _painters_cookie_settings() {
+  global $language;
+  $lang = ($language->language) ? $language->language : 'en';
+  // Save EU Cookie Settings
+  $eu_cookie_default_settings = array(
+    'popup_enabled' => '1',
+    'popup_clicking_confirmation' => '0',
+    'popup_agree_button_message' => 'Agreed',
+    'popup_info' => array(
+      'value' => '<h3>This website uses cookies.</h3><span>They allow us to optimize your browsing experience and also help us to understand how you use our site. By continuing to use this website, you <a href="/content/cookie-policy" title="accept"> accept our cookies</a></span>',
+      'format' => 'full_html',
+    ),
+    'popup_agreed' => array(
+      'value' => '<h2>Thank you for accepting cookies</h2><p>You can now hide this message or find out more about cookies.</p>',
+      'format' => 'full_html',
+    ),
+    'popup_link' => 'cookies',
+    'popup_bg_hex' => '9A4892',
+    'popup_agreed_enabled' => '0',
+    'exclude_paths' => 'admin*
+batch*
+node/add*
+node/*/*
+user/*/*
+devel/php
+node/add/*
+media/browser*',
+  );
+
+  // Saving to Drupal variables
+  variable_set('eu_cookie_compliance_' . $lang, $eu_cookie_default_settings);
+}
+
+/**
+ * Adding extra links for social media icons
+ */
+function painters_deployment_social_media_links_platform_info() {
+  $platforms[variable_get('social_channel_fb_lable2')] = array(
+    'title' => t(variable_get('social_channel_fb_lable2')),
+    'base url' => 'https://www.facebook.com/',
+  );
+  $platforms[variable_get('social_channel_twitter_lable2')] = array(
+    'title' => t(variable_get('social_channel_twitter_lable2')),
+    'base url' => 'http://www.twitter.com/',
+  );
+  $platforms[variable_get('social_channel_youtube_lable2')] = array(
+    'title' => t(variable_get('social_channel_youtube_lable2')),
+    'base url' => 'http://www.youtube.com/user/',
+  );
+  $platforms[variable_get('social_channel_insta_lable2')] = array(
+    'title' => t(variable_get('social_channel_insta_lable2')),
+    'base url' => 'http://www.instagram.com/',
+  );
+  $platforms[variable_get('social_channel_google_lable2')] = array(
+    'title' => t(variable_get('social_channel_google_lable2')),
+    'base url' => 'https://plus.google.com/',
+  );
+  $platforms[variable_get('social_channel_linkedin_lable2')] = array(
+    'title' => t(variable_get('social_channel_linkedin_lable2')),
+    'base url' => 'http://www.linkedin.com/',
+  );
+  $platforms[variable_get('social_channel_pinterest_lable2')] = array(
+    'title' => t(variable_get('social_channel_pinterest_lable2')),
+    'base url' => 'http://www.pinterest.com/',
+  );
+  $platforms[variable_get('social_channel_vimeo_lable2')] = array(
+    'title' => t(variable_get('social_channel_vimeo_lable2')),
+    'base url' => 'http://www.vimeo.com/',
+  );
+
+  $platforms['facebook']['sublink'] = $platforms[variable_get('social_channel_fb_lable2')];
+  $platforms['twitter']['sublink'] = $platforms[variable_get('social_channel_twitter_lable2')];
+  $platforms['youtube']['sublink'] = $platforms[variable_get('social_channel_youtube_lable2')];
+  $platforms['instagram']['sublink'] = $platforms[variable_get('social_channel_insta_lable2')];
+  $platforms['googleplus']['sublink'] = $platforms[variable_get('social_channel_google_lable2')];
+  $platforms['linkedin']['sublink'] = $platforms[variable_get('social_channel_linkedin_lable2')];
+  $platforms['pinterest']['sublink'] = $platforms[variable_get('social_channel_pinterest_lable2')];
+  $platforms['vimeo']['sublink'] = $platforms[variable_get('social_channel_vimeo_lable2')];
+
+  return $platforms;
+}
+
+/**
+ * Alter the platform names.
+ *
+ * @param array $platforms
+ *        	A associative array with the defined platforms.
+ */
+function painters_deployment_social_media_links_platform_info_alter(&$platforms) {
+  $platforms['facebook']['title'] = t(variable_get('social_channel_fb_lable1'));
+  $platforms['twitter']['title'] = t(variable_get('social_channel_twitter_lable1'));
+  $platforms['youtube']['title'] = t(variable_get('social_channel_youtube_lable1'));
+  $platforms['instagram']['title'] = t(variable_get('social_channel_insta_lable1'));
+  $platforms['googleplus']['title'] = t(variable_get('social_channel_google_lable1'));
+  $platforms['linkedin']['title'] = t(variable_get('social_channel_linkedin_lable1'));
+  $platforms['pinterest']['title'] = t(variable_get('social_channel_pinterest_lable1'));
+  $platforms['vimeo']['title'] = t(variable_get('social_channel_vimeo_lable1'));
+}
+
+/**
+ * Implementation of _create_bean_blocks for our effirt section in planet possible page
+ */
+function _create_bean_blocks_palent_possible_page() {
+  // Create the bean blocks : Color Question Block
+  $bean = bean_create(array(
+    'type' => 'bean_block',
+  ));
+  $bean->label = 'our-effort-section';
+  $bean->title = '';
+  $bean->delta = 'our-effort-section';
+  $bean->field_bean_body_text['en']['0']['value'] = '<div class="row vertical-bottom">
+			<div class="content-intro col-xs-12 col-sm-10 col-sm-offset-1">
+				<h2 class="text-center">Our 3 way effort for sustainability</h2>
+				<p>
+					We have made it simple by splitting our products into 3 categories. Look out for the product tags to make the right choice for your customer and the world
+				</p>
+			</div>
+		</div>';
+  $bean->uid = 1;
+  $bean->field_bean_body_text['en']['0']['format'] = 'full_html';
+  $bean->save();
+}
+
+/**
+ * Implementation of _assign_planet possible bean block
+ */
+function _assign_planet_possible_beanblocks($nid) {
+  $node = node_load($nid);
+  $display = $node->panelizer['page_manager']->display;
+  if (!is_numeric($display->did)) {
+    $new_display = panels_save_display($display);
+    $node->panelizer['page_manager']->display = $new_display;
+    $node->panelizer['page_manager']->display_is_modified = TRUE;
+    node_save($node);
+  }
+  $display = panels_load_display($node->panelizer['page_manager']->display->did);
+  $region = 'contentmain';
+  $display->content = array();
+  $display->panels[$region] = array();
+  // Add a new pane
+  $new_pane = panels_new_pane('block', 'bean-our-effort-section', TRUE);
+  $new_pane->panel = $region;
+  $display->panels[$region][] = $new_pane->pid;
+  $display->content[$new_pane->pid] = $new_pane;
+  panels_save_display($display);
+}
+
+/**
+ * Function to delete the artcile NID from the list
+ *
+ * @param unknown $form
+ * @param unknown $form_state
+ * @param unknown $nid:
+ *        	article nid
+ * @param unknown $variable_name
+ *
+ * @return The
+ */
+function block_variable_delete_confirm($form, &$form_state, $nid, $variable_name) {
+  $form['#block_variable'] = $nid;
+  $form['nid'] = array(
+    '#type' => 'value',
+    '#value' => $nid,
+  );
+  $form['variable_name'] = array(
+    '#type' => 'value',
+    '#value' => $variable_name,
+  );
+  $confirm_form = confirm_form($form, t('Are you sure you want to delete'), 'node/' . check_plain($nid), t('This action cannot be undone.'), t('Delete'), t('Cancel'));
+  $confirm_form['actions']['cancel']['#attributes'] = array(
+    'onClick' => 'history.go(-1);return false;',
+  );
+  return $confirm_form;
+}
+
+/**
+ * Function for the submit handler.
+ *
+ * @param unknown $form
+ * @param unknown $form_state
+ */
+function block_variable_delete_confirm_submit($form, &$form_state) {
+  if ($form_state['values']['confirm']) {
+    $nid = $form_state['values']['nid'];
+    $variable_name = $form_state['values']['variable_name'];
+    if ($variable_name) {
+      $variable_array = variable_get($variable_name);
+      $variable_array = array_diff($variable_array, array(
+        $nid,
+      ));
+      variable_set($variable_name, $variable_array);
+    }
+    drupal_set_message(t('Deleted the selected content from the list'));
+    switch ($variable_name) {
+      case 'new_article_block':
+        $form_state['redirect'] = 'admin/config/painters/new-article-blocks';
+        break;
+
+      case 'store_promo_article_block':
+        $form_state['redirect'] = 'admin/config/painters/store-promo-article';
+        break;
+
+      case 'highlighted_product':
+        $form_state['redirect'] = 'admin/config/painters/highlighted-products';
+        break;
+
+      case 'new_article_block_all_advice':
+        $form_state['redirect'] = 'admin/config/painters/new-article-blocks-all-advice';
+        break;
+    }
+  }
+}
+
+/**
+ * Implementation of _create_bean_blocks for Training Overview page
+ */
+function _create_bean_blocks_training_overview_page() {
+  // Training overview - Hero Block
+  $bean = bean_create(array(
+    'type' => 'bean_block',
+  ));
+  $bean->label = 'Training Overview - Hero Block';
+  $bean->title = '';
+  $bean->delta = 'training-overview';
+  $bean->uid = 1;
+  $bean->field_bean_body_text['en']['0']['value'] = '<div class="content-hero-a-xl"><div class="content-hero-a-xl--content">
+      <h1>Book your training and improve your skills</h1></div><div class="content-hero-a-xl--visual">
+      <img alt="image" class="image-cover" src="/profiles/painters/themes/custom/painters/images/advise-hero.jpg">
+      </div>
+      </div>';
+  $bean->field_bean_body_text['en']['0']['format'] = 'full_html';
+  $bean->save();
+  // Training Overview - Listing Block
+  $bean = bean_create(array(
+    'type' => 'bean_block',
+  ));
+  $bean->label = 'Training Overview - Listing Block';
+  $bean->title = '';
+  $bean->delta = 'training-overview-block-2';
+  $bean->uid = 1;
+  $bean->field_bean_body_text['en']['0']['value'] = '<div class="row"><div class="content-intro col-xs-12 col-sm-10 col-sm-offset-1 col-lg-8 col-lg-offset-2">
+      <h2 class="h2">Upcoming training courses</h2>
+      <p>Below you can find theLorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent quis neque eget arcu.</p>
+      </div></div>';
+  $bean->field_bean_body_text['en']['0']['format'] = 'full_html';
+  $bean->save();
+}
+
+/**
+ * Implementation of _create_bean_blocks for Advice and Support - Label Block
+ */
+function _create_bean_blocks_adive_support_label() {
+  // Advice and Support - Label Block
+  $bean = bean_create(array(
+    'type' => 'bean_block',
+  ));
+  $bean->label = 'Advice and Support - Label Block';
+  $bean->title = '';
+  $bean->delta = 'advice-label';
+  $bean->uid = 1;
+  $bean->field_bean_body_text['en']['0']['value'] = '<div class="row equalheight js-equalheight"><div class="col-xs-12"><h3>Featured</h3></div></div>';
+  $bean->field_bean_body_text['en']['0']['format'] = 'full_html';
+  $bean->save();
+}
+
+/**
+ * Function to delete the artcile NID from the list
+ *
+ * @param unknown $form
+ * @param unknown $form_state
+ * @param unknown $nid:
+ *        	article nid
+ * @param unknown $variable_name
+ *
+ * @return The
+ */
+function deploy_authoring_variable($variable_name, $type) {
+  if ($type == 'nids') {
+    $variables_array = variable_get($variable_name);
+    $uuids = _get_uuid_by_nid($variables_array);
+    $uuids = implode(",", $uuids);
+    $live_server_url = variable_get('live_server_url', '');
+    $response = drupal_http_request($live_server_url . '/deploy-variable-live-server/' . $variable_name . '/' . $uuids);
+    if (isset($response->error) || !in_array($response->code, array(
+          200,
+          304,
+        ))) {
+      watchdog('painters_deployment', 'Variable deploy error: @response', array(
+        '@response' => print_r($response->error, TRUE),
+          ), WATCHDOG_DEBUG);
+    }
+    drupal_set_message(t('Deploy the congiguration variable to live server'));
+    if ($response->code = 200) {
+      switch ($variable_name) {
+        case 'new_article_block':
+          drupal_goto('admin/config/painters/new-article-blocks');
+          break;
+
+        case 'store_promo_article_block':
+          drupal_goto('admin/config/painters/store-promo-article');
+          break;
+
+        case 'highlighted_product':
+          drupal_goto('admin/config/painters/highlighted-products');
+          break;
+
+        case 'new_article_block_all_advice':
+          drupal_goto('admin/config/painters/new-article-blocks-all-advice');
+          break;
+      }
+    }
+  }
+  elseif ($type == 'color-tools-sort' || $type == 'color-collection-sort' || $type == 'advice-support-overview-sort') {
+    global $base_url;
+    $variables_array = explode(',', $variable_name);
+    $options = deploy_manager_plan_get_options();
+    if (!empty($variables_array)) {
+      foreach ($variables_array as $nid) {
+        $node = node_load($nid);
+        deploy_manager_add_to_plan(key($options), 'node', $node);
+      }
+      $deploy = $base_url . '/admin/structure/deploy/plans/list/' . key($options) . '/deploy?cancel_path=admin/content';
+      drupal_set_message(t('Nodes were added to Push to <a href="@overview">@plan</a>.You might want to deploy the plan. You might want to <a href="@deploy">deploy the plan</a>.', array(
+        '@overview' => $base_url . '/admin/structure/deploy',
+        '@plan' => key($options),
+        '@deploy' => $deploy,
+      )));
+      switch ($type) {
+        case 'color-tools-sort':
+          drupal_goto('admin/config/painters/color-tools-sort-in-color-tools-landing-page');
+          break;
+
+        case 'color-collection-sort':
+          drupal_goto('admin/config/painters/color-collection-sort-in-color-collection-landing-page');
+          break;
+
+        case 'advice-support-overview-sort':
+          drupal_goto('admin/config/painters/advice-support-overview-articles');
+          break;
+      }
+    }
+  }
+}
+
+/**
+ * Function to executed in the live server to create the variable based on the $uuid
+ *
+ * @param unknown $variable_name
+ * @param unknown $uuid
+ */
+function deploy_live_variable($variable_name, $uuid) {
+  $uuid = explode(',', $uuid);
+  $nids = _get_nid_by_uuid($uuid);
+  if (!empty($nids)) {
+    variable_set($variable_name, $nids);
+  }
+  return;
+}
+
+/**
+ * Function to get the uuids based on nid
+ *
+ * @param unknown $nids
+ *
+ * @return multitype:NULL
+ */
+function _get_uuid_by_nid($nids) {
+  $uuids = array();
+  if (!empty($nids)) {
+    $query = db_select('node', 'n');
+    $query->condition('n.status', '1', '=');
+    $query->condition('n.nid', $nids, 'IN');
+    $query->fields('n', array(
+      'uuid',
+    ));
+    $articles = $query->execute();
+    foreach ($articles as $row) {
+      $uuids[] = $row->uuid;
+    }
+  }
+  return $uuids;
+}
+
+/**
+ * Function to get the nid based in UUIDS
+ *
+ * @param unknown $uuids
+ *
+ * @return multitype:NULL
+ */
+function _get_nid_by_uuid($uuids) {
+  $nids = array();
+  if (!empty($uuids)) {
+    $query = db_select('node', 'n');
+    $query->condition('n.status', '1', '=');
+    $query->condition('n.uuid', $uuids, 'IN');
+    $query->fields('n', array(
+      'nid',
+    ));
+    $articles = $query->execute();
+    foreach ($articles as $row) {
+      $nids[] = $row->nid;
+    }
+  }
+  return $nids;
+}
+
+/**
+ * Live Site URL configuration
+ *
+ * @see painters_deployment_menu()
+ */
+function deploy_live_server_url($form, &$form_state) {
+  $form = array();
+  global $base_url;
+  $form['settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Painters settings'),
+  );
+  $form['settings']['live_server_url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Live server URL'),
+    '#default_value' => variable_get('live_server_url', ''),
+    '#description' => t('Enter Live server URL'),
+    '#size' => 60,
+    '#maxlength' => 250,
+  );
+
+  return system_settings_form($form);
+}
+
+/**
+ * Implements hook_FORM_ID_alter().
+ *
+ * For Panelizer main container classes
+ */
+function painters_deployment_form_panelizer_settings_form_alter(&$form, &$form_state, $form_id) {
+  $panelizer = $form_state['panelizer'];
+  $form['css_id'] = array(
+    '#type' => 'textfield',
+    '#size' => 35,
+    '#title' => t("Main container CSS class"),
+    '#default_value' => $panelizer->css_id,
+    '#description' => t("The main container CSS class to apply to this panel."),
+  );
+}
+
+/**
+ * Implements hook_cron().
+ */
+function painters_deployment_cron() {
+  variable_set('token_clear_cache', time());
+  // Clear tokens
+  // token_clear_cache();
+  // Recreate tokens
+  // token_get_info();
+}
+
+/**
+ * Create FAQ page blocks.
+ */
+function painters_faq_blocks() {
+  // Other Source of support
+  $bean = bean_create(array(
+    'type' => 'bean_block',
+  ));
+  $bean->label = 'Other Source of support';
+  $bean->title = '';
+  $bean->delta = 'faq-othersources-support';
+  $bean->uid = 1;
+  $bean->field_bean_body_text['en']['0']['value'] = '<div class="row vertical-top-sm vertical-bottom-sm">
+			<div class="content-intro col-xs-12 col-sm-10 col-sm-offset-1">
+				<h1 class="h2">Other sources of support</h1>
+				<p>
+					Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean euismod bibendum laoreet.
+				</p>
+			</div>
+		</div>';
+  $bean->field_bean_body_text['en']['0']['format'] = 'full_html';
+  $bean->save();
+}
+
+/**
+ * update bean block.
+ */
+function painters_faq_bean_block_update() {
+  $bean = bean_load('faq-othersources-support');
+  $bean->field_bean_body_text['en']['0']['value'] = '<div class="row vertical-top-sm vertical-bottom-sm">
+			<div class="content-intro col-xs-12 col-sm-10 col-sm-offset-1">
+				<h1 class="h2">Other sources of support</h1>
+				<p>
+					Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean euismod bibendum laoreet.
+				</p>
+			</div>
+		</div>';
+  $bean->field_bean_body_text['en']['0']['format'] = 'full_html';
+  $bean->save();
+}
+
+/**
+ * Create FAQ Overview Page.
+ */
+function _create_landing_page_faq_overview() {
+  $options = array();
+  $options['title'] = 'Answers to your questions';
+  $options['link_title'] = 'Answers to your questions';
+  $options['description'] = 'Answers to your questions';
+  $options['sitemap_value'] = '41';
+  $options['path'] = t('advice/faq');
+  // Create a landing page
+  $nid = _create_landing_pages_article_content($options);
+  // Other supported content
+  $other_supported_nid = _create_other_supported_content();
+  // Add content to it faq page
+  _add_content_faq_landing_page($nid);
+}
+
+/**
+ * Add content to it faq page
+ */
+function _add_content_faq_landing_page($nid) {
+  $node = node_load($nid);
+  $display = $node->panelizer['page_manager']->display;
+  if (!is_numeric($display->did)) {
+    $new_display = panels_save_display($display);
+    $node->panelizer['page_manager']->display = $new_display;
+    $node->panelizer['page_manager']->display_is_modified = TRUE;
+    node_save($node);
+  }
+  $display = panels_load_display($node->panelizer['page_manager']->display->did);
+  $region = 'contentmain';
+  $display->content = array();
+  $display->panels[$region] = array();
+  // Add FAQ categories block
+  $new_pane = panels_new_pane('views_panes', 'faq-panel_pane_1', TRUE);
+  $new_pane->panel = $region;
+  $display->panels[$region][] = $new_pane->pid;
+  $display->content[$new_pane->pid] = $new_pane;
+  panels_save_display($display);
+
+  // Add Other sources Block
+  $new_pane = panels_new_pane('block', 'bean-faq-othersources-support', TRUE);
+  $new_pane->panel = $region;
+  $display->panels[$region][] = $new_pane->pid;
+  $display->content[$new_pane->pid] = $new_pane;
+  panels_save_display($display);
+}
+
+/**
+ * Created other supported content.
+ */
+function _create_other_supported_content() {
+  $node = new stdClass();
+  $node->type = 'painters_article';
+  node_object_prepare($node);
+  $node->language = LANGUAGE_NONE;
+  $node->title = 'Wikipainture';
+
+  $node->field_sub_text[$node->language][0]['value'] = 'In hac habitasse platea dictumst. Vivamus adipiscing fermentum quam volutpat aliquam. Integer et elit eget elit facilisis tristique. Nam vel iaculis.';
+
+  $filepath = drupal_realpath('profiles/painters/themes/custom/painters/assets/toolkit/images/faq-overview.jpg');
+  // Create managed File object and associate with Image field.
+  $file = (object) array(
+        'uid' => 1,
+        'uri' => $filepath,
+        'filemime' => file_get_mimetype($filepath),
+        'status' => 1,
+  );
+  $file = file_copy($file, 'public://');
+  $node->field_hero_image[$node->language][0] = (array) $file;
+
+  $node->field_article_call_to_action[$node->language][0]['value'] = 'article_detail';
+  $node->field_article_detail_page_link[$node->language][0]['value'] = 'To wikipainture site';
+  $node->status = 1;
+  $node->uid = 1;
+  node_save($node);
+  return $node->nid;
+}
+
+/**
+ * Node Form alter function
+ *
+ * @param unknown $form
+ * @param unknown $form_state
+ * @param unknown $form_id
+ */
+function painters_deployment_form_node_form_alter(&$form, &$form_state, $form_id) {
+  if (!empty($form['language']) && in_array('GPP', $form['language']['#options'])) {
+    $form['#after_build'][] = '_painters_deployment_form_node_form_alter';
+  }
+}
+
+/**
+ * Custom function for unsetting gpp language using form #after_build
+ */
+function _painters_deployment_form_node_form_alter($form, &$form_state) {
+  unset($form['language']['#options']['gpp']);
+  return $form;
+}
+
+/**
+ * Create Training Overview Page
+ */
+function _create_landing_page_training_overview() {
+  $options = array();
+  $options['title'] = 'Training Overview';
+  $options['link_title'] = 'Training Overview';
+  $options['description'] = 'Training Overview';
+  $options['sitemap_value'] = '43';
+  $options['path'] = t('advice/training');
+  // Create a landing page
+  $nid = _create_landing_pages_article_content($options);
+  // Add content to it faq page
+  _add_content_training_landing_page($nid);
+}
+
+/**
+ * Add content to it Training page
+ */
+function _add_content_training_landing_page($nid) {
+  $node = node_load($nid);
+  $display = $node->panelizer['page_manager']->display;
+  if (!is_numeric($display->did)) {
+    $new_display = panels_save_display($display);
+    $node->panelizer['page_manager']->display = $new_display;
+    $node->panelizer['page_manager']->display_is_modified = TRUE;
+    node_save($node);
+  }
+  $display = panels_load_display($node->panelizer['page_manager']->display->did);
+  $region = 'contentmain';
+  $display->content = array();
+  $display->panels[$region] = array();
+  // Add training hero block
+  $new_pane = panels_new_pane('block', 'bean-training-overview', TRUE);
+  $new_pane->panel = $region;
+  $display->panels[$region][] = $new_pane->pid;
+  $display->content[$new_pane->pid] = $new_pane;
+  panels_save_display($display);
+
+  // Add Upcoming training courses Block
+  $new_pane = panels_new_pane('block', 'bean-training-overview-block-2', TRUE);
+  $new_pane->panel = $region;
+  $display->panels[$region][] = $new_pane->pid;
+  $display->content[$new_pane->pid] = $new_pane;
+  panels_save_display($display);
+
+  // Add Upcoming training courses listing View panels
+  $new_pane = panels_new_pane('views_panes', 'training_overview-panel_pane_1', TRUE);
+  $new_pane->panel = $region;
+  $display->panels[$region][] = $new_pane->pid;
+  $display->content[$new_pane->pid] = $new_pane;
+  panels_save_display($display);
+}
+
+/**
+ * show me articles filter for all advice page
+ */
+function all_advice_page_filters() {
+  $vocabulary = taxonomy_vocabulary_machine_name_load('advise_support_all_advice_category');
+  $terms = taxonomy_get_tree($vocabulary->vid);
+  $courses = array();
+  foreach ($terms as $term) {
+    $courses[$term->tid] = $term->name;
+  }
+  $output = theme('all_advice_filters', array('all_advice_categories' => $courses, 'all_cat_label' => painters_utils_get_label('new_articles_tabs_label_categories'),
+  ));
+  return $output;
+}
+
+/**
+ * delete user account success page
+ */
+function delete_account_success_page() {
+  global $base_url;
+  $info = array();
+  $output = NULL;
+  $delete_success = session_cache_get('delete_success');
+  if (isset($delete_success)) {
+    $info['title'] = t('Your account has been deleted');
+    $info['description'] = t('All you info will be deleted from our database.');
+    $info['button_text'] = t('Back to the homepage');
+    $info['button_link'] = $base_url;
+    session_cache_set('delete_success', NULL);
+    $output = theme('user_account_delete_success', array(
+      'info' => $info,
+    ));
+  }
+  return $output;
+}
+
+/**
+ * We are overriding theme_file_managed_file() for admin theme only.
+ * By default
+ * core function is giving duplicate ids and due to that not able to upload files.
+ * Returns HTML for a managed file element.
+ *
+ * @param $variables An
+ *        	associative array containing:
+ *        	- element: A render element representing the file.
+ *
+ *        	@ingroup themeable
+ */
+function seven_file_managed_file($variables) {
+  $element = $variables['element'];
+
+  $attributes = array();
+  if (isset($element['#id'])) {
+    $attributes['id'] = $element['#id'];
+  }
+  if (!empty($element['#attributes']['class'])) {
+    $attributes['class'] = (array) $element['#attributes']['class'];
+  }
+  $attributes['class'][] = 'form-managed-file';
+
+  // This wrapper is required to apply JS behaviors and CSS styling.
+  $output = '';
+  $attributes['id'] = $attributes['id'] . '-wrap';
+  $output .= '<div' . drupal_attributes($attributes) . '>';
+  $output .= drupal_render_children($element);
+  $output .= '</div>';
+  return $output;
+}
+
+/**
+ *
+ * @param <type> $variables
+ */
+function painters_deployment_file_managed_file($variables) {
+  return seven_file_managed_file($variables);
+}
+
+/**
+ * removing the 'other' option from type of media in painters article
+ */
+function painters_deployment_element_info() {
+  return array(
+    'select_or_other' => array(
+      '#select_type' => 'select',
+      '#input' => TRUE,
+      '#multiple' => FALSE,
+      '#default_value' => NULL,
+      '#process' => array(
+        'painters_deployment_element_process',
+      ),
+      '#element_validate' => array(
+        'select_or_other_element_validate',
+      ),
+      '#other' => t('Other'),
+      '#theme' => 'select_or_other',
+    ),
+  );
+  // '#theme_wrappers' => array('form_element'),
+}
+
+/**
+ * removing the 'other' option from type of media in painters article
+ */
+function painters_deployment_element_process($element, &$form_state) {
+  $element['#tree'] = TRUE;
+  $element['#processed'] = TRUE;
+
+  // Load the JS file to hide/show the 'other' box when needed.
+  $element['#attached']['js'][] = drupal_get_path('module', 'select_or_other') . '/select_or_other.js';
+
+  // Create the main select box
+  // Note that #title, #title_display, #default_value, #multiple, #required,
+  // #size, #options, and #attributes are passed to the select box from the
+  // main element automatically.
+
+  $element['select'] = array(
+    '#type' => $element['#select_type'],
+    // '#title' => $element['#title'],
+    // '#title_display' => $element['#title_display'],
+    '#default_value' => $element['#default_value'],
+    '#multiple' => $element['#multiple'],
+    '#required' => $element['#required'],
+    '#size' => isset($element['#size']) ? $element['#size'] : NULL,
+    '#options' => $element['#options'],
+    // '#attributes' => $element['#attributes'],
+    '#weight' => 10,
+  );
+
+  foreach (array(
+'#empty_option',
+ '#empty_value',
+  ) as $key) {
+    if (isset($element[$key])) {
+      $element['select'][$key] = $element[$key];
+    };
+  }
+
+  // Remove the default value on the container level so it doesn't get rendered there.
+  $element['#value'] = NULL;
+  // Remove the required parameter so FAPI doesn't force us to fill in the textfield.
+  $element['#required'] = NULL;
+
+  // Now we must handle the default values.
+  $other_default = array();
+
+  // Easier to work with the defaults if they are an array.
+  if (!is_array($element['select']['#default_value'])) {
+    $element['select']['#default_value'] = array(
+      $element['select']['#default_value'],
+    );
+  }
+
+  // Process the default value.
+  foreach ($element['select']['#default_value'] as $key => $val) {
+
+    if ($val && isset($element['select']['#options']) && is_array($element['select']['#options']) && !select_or_other_multi_array_key_exists($val, $element['select']['#options']) && !in_array($val, $element['select']['#options'])) {
+
+      // Not a valid option - add it to 'other'.
+      if ($element['#other_unknown_defaults'] == 'other') {
+
+        if ($element['#other_delimiter']) {
+          $other_default[] = $val;
+        }
+        else {
+          $other_default = array(
+            $val,
+          );
+        }
+        // Remove it from the select's default value.
+        unset($element['select']['#default_value'][$key]);
+      }
+      // Also checks if 'Other' values should be new options, because if that
+      // setting is newly set after data is already stored, it should behave
+      // like 'append'.
+      elseif ($element['#other_unknown_defaults'] == 'append' || $element['#other_unknown_new_option']) {
+        $element['select']['#options'][$val] = $val;
+      }
+    }
+  }
+
+  // If the expected default value is a string/integer, remove the array wrapper.
+  if ($element['#select_type'] == 'radios' || ($element['#select_type'] == 'select' && !$element['#multiple'])) {
+    $element['select']['#default_value'] = reset($element['select']['#default_value']);
+  }
+
+  $other_default_string = '';
+  if (!empty($other_default)) {
+    $other_default_string = implode($element['#other_delimiter'], $other_default);
+    if (is_array($element['select']['#default_value'])) {
+      $element['select']['#default_value'][] = 'select_or_other';
+    }
+    else {
+      $element['select']['#default_value'] = 'select_or_other';
+    }
+  }
+  return $element;
+}
+
+/**
+ * Implementation of _create_bean_blocks for Advice and Support category - Label Block
+ */
+function _create_bean_blocks_advice_support_category_label() {
+  // Advice and Support Category - Label Block
+  $bean = bean_create(array(
+    'type' => 'bean_block',
+  ));
+  $bean->label = 'Advice support category Label';
+  $bean->title = '';
+  $bean->delta = 'advice-support-category-label';
+  $bean->uid = 1;
+  $bean->field_bean_body_text['en']['0']['value'] = '<div class="row vertical-bottom-sm"><div class="col-xs-12"><h2 class="text-center">Choose a category</h2></div></div>';
+  $bean->field_bean_body_text['en']['0']['format'] = 'full_html';
+  $bean->save();
+}
+
+/**
+ * Check if the Authenticated user is selected in painters article and hide the content for anonymus users
+ */
+function painters_deployment_node_access($node, $op, $account) {
+  $type = is_string($node) ? $node : $node->type;
+
+  // if its a painters content type, user content types machine name.
+  if ($type == 'painters_article' && $op == 'view') {
+    global $language;
+    $lang_code = $language->language;
+    $auth_user = isset($node->field_authenticated_user['und'][0]['value']) ? $node->field_authenticated_user['und'][0]['value'] : $node->field_authenticated_user[$lang_code][0]['value'];
+
+    // If the authenticated checkbox is checked then only the logged in users can view the content.
+    if ($auth_user == 0) {
+      return NODE_ACCESS_ALLOW;
+    }
+    else {
+      if (user_is_logged_in()) {
+        return NODE_ACCESS_ALLOW;
+      }
+      else {
+        return NODE_ACCESS_DENY;
+      }
+    }
+  }
+  return NODE_ACCESS_IGNORE;
+}
+
+/**
+ * Create Workspace help Page
+ */
+function _create_landing_page_workspace_help() {
+  $options = array();
+  $options['title'] = $options['link_title'] = $options['description'] = 'How to use Workspace & jobs';
+  $options['sitemap_value'] = '60.01.01';
+  $path = t('workspace/help');
+  $options['path'] = array(
+    'alias' => $path,
+  );
+  // Create workspace help landing page
+  $landing_nid = _create_landing_pages_article_content($options);
+  // Create workspace help landing page
+  $article_nid = _create_painters_article_content();
+  // Add content to it faq page
+  _add_content_workspace_help_landing_page($landing_nid, $article_nid);
+}
+
+/**
+ * Create painters article node
+ */
+function _create_painters_article_content() {
+  global $language;
+  $lang = ($language->language) ? $language->language : 'en';
+  $node = new stdClass();
+  $node->type = 'painters_article';
+  node_object_prepare($node);
+  $node->language = $lang;
+  $node->title = 'How to use Workspace & jobs';
+  $node->status = 1;
+  $node->uid = 1;
+  $limit = 3;
+  $filepath = drupal_realpath('profiles/painters/themes/custom/painters/images/icn_tick.png');
+  // Create managed File object and associate with Image field.
+  $file = (object) array(
+        'uid' => 1,
+        'uri' => $filepath,
+        'filemime' => file_get_mimetype($filepath),
+        'status' => 1,
+  );
+  $file = file_copy($file, 'public://');
+
+  for ($i = 0; $i < $limit; $i++) {
+    $node->field_painters_article[$lang][$i]['field_section_image '][$lang][0] = (array) $file;
+    $node->field_painters_article[$lang][$i]['field_section_title'][$lang][0]['value'] = 'Section Title ' . $i;
+    $node->field_painters_article[$lang][$i]['field_section_description'][$lang][0]['value'] = 'Section Description ' . $i;
+  }
+  node_save($node);
+  return $node->nid;
+}
+
+/**
+ * Add content to it Workspace help page
+ */
+function _add_content_workspace_help_landing_page($landing_nid, $article_nid) {
+  $node = node_load($landing_nid);
+  $display = $node->panelizer['page_manager']->display;
+  if (!is_numeric($display->did)) {
+    $new_display = panels_save_display($display);
+    $node->panelizer['page_manager']->display = $new_display;
+    $node->panelizer['page_manager']->display_is_modified = TRUE;
+    node_save($node);
+  }
+  $display = panels_load_display($node->panelizer['page_manager']->display->did);
+  $region = 'contentmain';
+  $display->content = array();
+  $display->panels[$region] = array();
+
+  // Add Other sources Block
+  $new_pane = panels_new_pane('block', 'painters_my_workspace-painters_my_workspace_help_node', TRUE);
+  $new_pane->panel = $region;
+  $display->panels[$region][] = $new_pane->pid;
+  $display->content[$new_pane->pid] = $new_pane;
+  panels_save_display($display);
+  ctools_include('object-cache');
+  ctools_object_cache_clear('panels_node_display_cache', $landing_nid);
+
+  // Add Other sources Block
+  $new_pane = panels_new_pane('node', 'node', TRUE);
+  $new_pane->panel = $region;
+  $new_pane->configuration['nid'] = $article_nid;
+  $new_pane->configuration['build_mode'] = 'landing_page_image_left';
+  $new_pane->configuration['link_node_title'] = FALSE;
+  $new_pane->configuration['links'] = FALSE;
+  $display->panels[$region][] = $new_pane->pid;
+  $display->content[$new_pane->pid] = $new_pane;
+  panels_save_display($display);
+  ctools_include('object-cache');
+  ctools_object_cache_clear('panels_node_display_cache', $landing_nid);
+}
+
+/**
+ * Implementation of _create_bean_blocks for our effirt section in planet possible page
+ */
+function _create_bean_blocks_workspace_help_page() {
+  // Create the bean blocks : Color Question Block
+  $bean = bean_create(array(
+    'type' => 'bean_block',
+  ));
+  $bean->label = 'my-workspace-help-label';
+  $bean->title = '';
+  $bean->delta = 'my-workspace-help';
+  $bean->uid = 1;
+  $bean->field_bean_body_text['en']['0']['value'] = '<div class="row vertical-bottom-sm text-center">
+					<div class="col-xs-12">
+						<h2>How can this Workspace help you in your work?</h2>
+					</div>
+				</div>';
+  $bean->field_bean_body_text['en']['0']['format'] = 'full_html';
+  $bean->save();
+}
+
+/**
+ * Provides site label settings form.
+ */
+function site_label_configuration($form, &$form_state) {
+  $form = array();
+  $form['workspace_lables'] = array(
+    '#type' => 'link',
+    '#title' => t('Workspace label settings'),
+    '#href' => 'admin/config/painters/sitefurniture-label/workspace-labels',
+  );
+  $form['br'] = array(
+    '#markup' => '<br />',
+  );
+  $form['home_page_brand_lables'] = array(
+    '#type' => 'link',
+    '#title' => t('Home / Brand page label settings'),
+    '#href' => 'admin/config/painters/sitefurniture-label/home-page-brand-labels',
+  );
+  $form['br1'] = array(
+    '#markup' => '<br />',
+  );
+  $form['color_listing_details_lables'] = array(
+    '#type' => 'link',
+    '#title' => t('Color listing & details label settings'),
+    '#href' => 'admin/config/painters/sitefurniture-label/color-listing-details-labels',
+  );
+  $form['br2'] = array(
+    '#markup' => '<br />',
+  );
+  $form['color_collection_tools_lables'] = array(
+    '#type' => 'link',
+    '#title' => t('Color collection & tools label settings'),
+    '#href' => 'admin/config/painters/sitefurniture-label/color-collection-tools-labels',
+  );
+  $form['br3'] = array(
+    '#markup' => '<br />',
+  );
+  $form['product_lables'] = array(
+    '#type' => 'link',
+    '#title' => t('Product overview, listing & compare page label settings'),
+    '#href' => 'admin/config/painters/sitefurniture-label/product-labels',
+  );
+  $form['br4'] = array(
+    '#markup' => '<br />',
+  );
+  $form['product_datasheet_lables'] = array(
+    '#type' => 'link',
+    '#title' => t('Product data sheet page label settings'),
+    '#href' => 'admin/config/painters/sitefurniture-label/product-datasheet-labels',
+  );
+  $form['br5'] = array(
+    '#markup' => '<br />',
+  );
+  $form['contact_us_lables'] = array(
+    '#type' => 'link',
+    '#title' => t('Contact us page label settings'),
+    '#href' => 'admin/config/painters/sitefurniture-label/contact-us-labels',
+  );
+  $form['br6'] = array(
+    '#markup' => '<br />',
+  );
+  $form['training_lables'] = array(
+    '#type' => 'link',
+    '#title' => t('Training page label settings'),
+    '#href' => 'admin/config/painters/sitefurniture-label/training-labels',
+  );
+  $form['br7'] = array(
+    '#markup' => '<br />',
+  );
+  $form['store_lables'] = array(
+    '#type' => 'link',
+    '#title' => t('Store page label settings'),
+    '#href' => 'admin/config/painters/sitefurniture-label/store-listing-detail-labels',
+  );
+  $form['br8'] = array(
+    '#markup' => '<br />',
+  );
+  $form['knowledge_center_sustainability_lables'] = array(
+    '#type' => 'link',
+    '#title' => t('Knowledge Center / Sustainability page label settings'),
+    '#href' => 'admin/config/painters/sitefurniture-label/knowledge-center-sustainability-labels',
+  );
+  $form['br9'] = array(
+    '#markup' => '<br />',
+  );
+  $form['product_color_search_lables'] = array(
+    '#type' => 'link',
+    '#title' => t('Product / color search page label settings'),
+    '#href' => 'admin/config/painters/sitefurniture-label/product-color-search-labels',
+  );
+  $form['br10'] = array(
+    '#markup' => '<br />',
+  );
+  $form['generic_search_lables'] = array(
+    '#type' => 'link',
+    '#title' => t('Generic search page label settings'),
+    '#href' => 'admin/config/painters/sitefurniture-label/generic-search-labels',
+  );
+  $form['br11'] = array(
+    '#markup' => '<br />',
+  );
+  $form['faq_lables'] = array(
+    '#type' => 'link',
+    '#title' => t('FAQ page label settings'),
+    '#href' => 'admin/config/painters/sitefurniture-label/faq-labels',
+  );
+  $form['br12'] = array(
+    '#markup' => '<br />',
+  );
+  $form['users_lables'] = array(
+    '#type' => 'link',
+    '#title' => t('User page label settings'),
+    '#href' => 'admin/config/painters/sitefurniture-label/user-labels',
+  );
+
+  return $form;
+}
+
+/**
+ * Alter bean block author from anonymous to admin.
+ */
+function alter_beanblock_author() {
+  $bean_block_update = db_update('bean')->fields(array(
+        'uid' => 1,
+      ))->condition('uid', 0, '=')->execute();
+  $bean_block_update = db_update('bean_revision')->fields(array(
+        'uid' => 1,
+      ))->condition('uid', 0, '=')->execute();
+}
+
+/**
+ * Implements form API.
+ */
+function employee_range_settings_form($form, &$form_state) {
+  $form = array();
+  $form['#tree'] = TRUE;
+
+  $values = variable_get('employee_range');
+  if (empty($values['employee_range_field'])) {
+    $values['employee_range_field'] = array(
+      '1-5',
+      '6-20',
+      '21-50',
+      '50+',
+    );
+  }
+  $form['employee_range'] = array(
+    '#type' => 'fieldset',
+    '#tree' => TRUE,
+    '#title' => t('Provide employee range'),
+    '#description' => 'Please provide employee range in the format 1-2 or 1+',
+    '#prefix' => '<div id="add-employee-fieldset-wrapper">',
+    '#suffix' => '</div>',
+  );
+
+  // Accoring to count value render the form element on the page.
+  if (empty($form_state['emp_range_count'])) {
+    $count = count($values['employee_range_field']);
+    if ($count > 1) {
+      $form_state['emp_range_count'] = $count;
+    }
+    else {
+      $form_state['emp_range_count'] = 1;
+    }
+  }
+  for ($i = 0; $i < $form_state['emp_range_count']; $i++) {
+    $form['employee_range']['employee_range_field'][$i] = array(
+      '#type' => 'textfield',
+      '#default_value' => isset($values['employee_range_field'][$i]) ? $values['employee_range_field'][$i] : '',
+      '#attributes' => array(
+        'placeholder' => t('Enter Employee range'),
+      ),
+      '#size' => 60,
+      '#maxlength' => 250,
+    );
+  }
+
+  // Add more button
+  $form['employee_range']['add_employee_range'] = array(
+    '#type' => 'submit',
+    '#value' => t('Add another employee range'),
+    '#name' => 'add_another_emp_range',
+    '#submit' => array(
+      'add_employee_range',
+    ),
+    '#ajax' => array(
+      'callback' => 'ajax_add_employee_range',
+      'wrapper' => 'add-employee-fieldset-wrapper',
+    ),
+  );
+  $form['#validate'] = array(
+    'emp_reng_custom_validation',
+  );
+  return system_settings_form($form);
+}
+
+/**
+ * Implementation of custom form validate
+ */
+function emp_reng_custom_validation($form, &$form_state) {
+
+  // Check if the user has clicked on the submit.
+  if ($form_state['triggering_element']['#name'] === 'op') {
+    $special_character_list = "/^[0-9+-]+$/";
+    foreach ($form_state['values']['employee_range']['employee_range_field'] as $key => $employee_range) {
+      $employee_range_var = variable_get('employee_range');
+      if ((count($employee_range_var['employee_range_field']) != count($form_state['values']['employee_range']['employee_range_field'])) && preg_match($special_character_list, $employee_range) == 0) {
+        form_set_error('employee_range][employee_range_field][' . $key, t('The specified form element contains one or more illegal characters or empty.'));
+      }
+      elseif ($employee_range == '-' || $employee_range == '+') {
+        form_set_error('employee_range][employee_range_field][' . $key, t('Special characters dash (-) or plus (+) without numeric value are not allowed.'));
+      }
+
+      // Check if the textfield value is empty, remove the value form the variable_get.
+      if ((count($employee_range_var['employee_range_field']) === count($form_state['values']['employee_range']['employee_range_field'])) && empty($employee_range)) {
+        unset($form_state['values']['employee_range']['employee_range_field'][$key]);
+        $form_state['values']['employee_range']['employee_range_field'] = array_values($form_state['values']['employee_range']['employee_range_field']);
+      }
+    }
+  }
+}
+
+/**
+ * Implementation of add more button for the employee range
+ */
+function add_employee_range($form, &$form_state) {
+  if ($form_state['emp_range_count'] < 6) {
+    $form_state['emp_range_count'] ++;
+    $form_state['rebuild'] = TRUE;
+  }
+  else {
+    drupal_set_message(t('You can add maximum 6 employee range'), 'error');
+  }
+}
+
+/**
+ * Implementation of add more button ajax call back
+ */
+function ajax_add_employee_range($form, $form_state) {
+  return $form['employee_range'];
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function painters_deployment_form_alter(&$form, &$form_state, $form_id) {
+  if ($form_id == ('product_package_node_form') || ('platform_product_node_form') || ('article_node_form') || ('page_node_form') || ('brand_node_form') || ('carousel_content_node_form') || ('color_collection_node_form') || ('color_tools_node_form') || ('data_sheet_node_form') || ('faq_node_form') || ('panopoly_landing_page_node_form') || ('painters_article_node_form') || ('training_node_form')) {
+    drupal_add_js(drupal_get_path('module', 'painters_deployment') . '/js/page_title.js');
+  }
+}
+
+/**
+ * Utitlity function to disable unused modules in prod and preprod environments.
+ */
+function disable_unused_modules() {
+  $contrib_modules = array(
+    'comment',
+    'contact',
+    'dblog',
+    'calendar',
+    'ga_staus',
+    'assemble',
+    'advanced_help',
+    'breakpoints',
+    'help_example',
+    'views_slideshow',
+    'views_slideshow_cycle',
+    'views_ui',
+    'background_process',
+    'progress',
+    'manage_multisite',
+    'delete_all',
+    'devel',
+    'multiform',
+    'picture',
+    'radioactivity',
+    'jcarousel',
+    'waypoints',
+    'better_exposed_filters',
+    'mefibs',
+    'views_infinite_scroll',
+    'views_load_more',
+    'coder_review',
+    'coder',
+    'disqus',
+    'googleanalytics',
+    'ga_stats',
+    'shell',
+  );
+  foreach ($contrib_modules as $module) {
+    if (module_exists($module)) {
+      module_disable(array(
+        $module,
+      ));
+      drupal_uninstall_modules(array(
+        $module,
+      ));
+    }
+  }
+}
+
+/**
+ * Implements block_view_alter()
+ *
+ * @param <type> $data
+ * @param <type> $block
+ */
+function painters_deployment_block_view_alter(&$data, $block) {
+  switch ($block->delta) {
+    case 'language_content':
+      $languages = language_list('language');
+      $language_status = variable_get('language_seting');
+
+      if ($language_status == 1 && isset($languages['en'])) {
+        unset($languages['en']);
+      }
+      if (count($languages) <= 1) {
+        $data['content'] = '';
+      }
+      break;
+  }
+}
+
+/**
+ * To create second layer policy page as basic page
+ */
+function create_second_layer_privacy_policy() {
+  $node = new stdClass();
+  $node->type = 'page';
+  node_object_prepare($node);
+  $node->title = 'Second layer';
+  $node->language = 'und';
+  $node->status = 1;
+  $node->uid = 1;
+  $node->body[$node->language][0]['value'] = '<p>For contacting you with personalized commercial messages, we will create profiles and analyze your interactions with us. For this, we will look at your personal data such as:</p><ul><li>your name, gender, date of birth, e-mail address, and physical address;</li><li>your preferences and interests, such as those that you have actively shared with us, but also those inferred through your registered interactions with AkzoNobel websites and apps (for which we may use cookies);</li><li>your shopping history, both online (if you link your purchases to your profile) and offline (when making an offline purchase) ; and</li><li>the links you click in our emails.</li></ul><p>This way we learn about your interests and can ensure that we provide you with the information and promotions that are of most interest to you. We may also ask you for your opinion about our products and services.</p><p>If you donÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢t want to receive any more messages or if you want to opt-out of a particular form of communication with us (for example SMS, E-mail or regular mail), just, follow the steps in that particular communication.</p><p>For further information, please read our <a href="cookie-policy">Cookie Statement</a> or our full <a href="privacy-statement">Privacy Statement</a>.</p>';
+  $node->body[$node->language][0]['format'] = 'full_html';
+  $path = t('second-layer-policy');
+  $node->path = array(
+    'alias' => $path,
+  );
+  // Prepare node for saving
+  $node = node_submit($node);
+  node_save($node);
+}
+
+/**
+ * Implements hook_url_inbound_alter().
+ */
+function painters_deployment_url_inbound_alter(&$path, $original_path, $language) {
+  // If the current menu item exists at this path, then we should not continue
+  // processing.
+  global $language, $base_url;
+  $path_language = $language->language;
+  $store_detail_url = variable_get('store_detail_url_alias_' . $path_language);
+  $training_confirmation_url = variable_get('training_confirmation_url_alias_' . $path_language);
+  //Muli lingual settngs
+  $pos = 0;
+  $language_prefix = '';
+  if (!drupal_multilingual()) {
+    $language_prefix = $path_language . '/';
+    $pos = 1;
+  }
+  // Custom redirection for Store detail page
+  if ($language_prefix . arg($pos) == $store_detail_url) {
+    $store_id = arg($pos + 1);
+    if (!empty($store_id)) {
+      $path = 'find-a-store' . '/' . arg($pos + 1);
+    }
+  }
+  // Custom redirection for Training confirmation page
+  if ($language_prefix . (arg($pos) . '/' . arg($pos + 1)) == $training_confirmation_url) {
+    $training_title = arg($pos + 2);
+    $thank_you_page = arg($pos + 3);
+    if (!empty($thank_you_page) && !empty($training_title) && $thank_you_page == t('thankyou')) {
+      $path = 'advice/training' . '/' . $training_title . '/' . t('thankyou');
+    }
+  }
+  if ((drupal_lookup_path('source', $language_prefix . arg($pos), $path_language) == 'colours') || (drupal_lookup_path('source', $language_prefix . arg($pos) . "/" . arg($pos + 1), $path_language) == 'products-listing') || (drupal_lookup_path('source', $language_prefix . arg($pos) . "/" . arg($pos + 1), $path_language) == 'workspace/detail')) {
+    $item = menu_get_item($path);
+    if (!empty($item) && $item['href'] == $path) {
+      return FALSE;
+    }
+    if ($source = _painters_custom_lookup_subpath('source', $path, $original_path, $path_language)) {
+      $path = $source;
+    }
+  }
+}
+
+/**
+ * Given an alias, return its Drupal system URL if one exists.
+ * Given a Drupal
+ * system URL return one of its aliases if such a one exists. Otherwise,
+ * return FALSE.
+ *
+ * @param $action One
+ *        	of the following values:
+ *        	- wipe: delete the alias cache.
+ *        	- alias: return an alias for a given Drupal system path (if one exists).
+ *        	- source: return the Drupal system URL for a path alias (if one exists).
+ * @param $path The
+ *        	path to investigate for corresponding aliases or system URLs.
+ * @param $path_language Optional
+ *        	language code to search the path with. Defaults to the page
+ *        	language. If there's no path defined for that language it will search\
+ *        	paths without language.
+ *
+ * @return Either a Drupal system path, an aliased path, or FALSE if no path was
+ *         found.
+ */
+function _painters_custom_lookup_subpath($action, $path = '', $original_path, $path_language = NULL) {
+  global $language_url;
+  if ($path == '' || strpos($path, '/') === FALSE) {
+    // If the path is empty or does not contain more than one part, then there
+    // is no sub-path processing to do.
+    return FALSE;
+  }
+  if ($path != $original_path) {
+    // If the $path variable doesn't match $original_path, this means it has
+    // already been matched against an source or alias directly. It should
+    // be skipped from sub-path processing.
+    return FALSE;
+  }
+  if (drupal_match_path($path, "<front>\njs/*")) {
+    return FALSE;
+  }
+
+  // If no language is explicitly specified we default to the current URL
+  // language. If we used a language different from the one conveyed by the
+  // requested URL, we might end up being unable to check if there is a path
+  // alias matching the URL path.
+  $path_language = $path_language ? $path_language : $language_url->language;
+
+  $base_path_parts = explode('/', $path);
+  $depth = count($base_path_parts) - 1;
+  // Perform a search for each base path with the right-most segment removed.
+  $path_suffix = array();
+  for ($i = 1; $i <= $depth; $i++) {
+    array_unshift($path_suffix, array_pop($base_path_parts));
+    $base_path = implode('/', $base_path_parts);
+    if ($action == 'alias' && $aliased_base_path = drupal_lookup_path('alias', $base_path, $path_language)) {
+      if ($aliased_base_path != $base_path) {
+        $alias = $aliased_base_path . '/' . implode('/', $path_suffix);
+        // subpathauto_cache_subpath_alias($path, $alias, $path_language);
+        return $alias;
+      }
+    }
+    elseif ($action == 'source' && $sourced_base_path = drupal_lookup_path('source', $base_path, $path_language)) {
+      if ($sourced_base_path != $base_path) {
+        $source = $sourced_base_path . '/' . implode('/', $path_suffix);
+        // subpathauto_cache_subpath_alias($source, $path, $path_language);
+        return $source;
+      }
+    }
+  }
+
+  return FALSE;
+}
+
+/**
+ * Create all advice and pillar categories through code
+ */
+function painters_create_taxonomy_terms() {
+  // Create terms
+  $painters_article_content_terms = array(
+    'advise_support_category' => array(
+      '0' => array(
+        'term_name' => 'Knowledge',
+        'term_desc' => '',
+        'has_child' => TRUE,
+        'child_terms' => array(
+          '0' => array(
+            'term_name' => 'Clients',
+            'term_desc' => 'Advice on how to attract more clients and how to keep them happy',
+            'custom_class' => 'icon-clients',
+            'has_child' => FALSE,
+          ),
+          '1' => array(
+            'term_name' => 'Work',
+            'term_desc' => 'Improving your painting skills and learn how to handle tough painting jobs',
+            'custom_class' => 'icon-brush',
+            'has_child' => FALSE,
+          ),
+          '2' => array(
+            'term_name' => 'Business',
+            'term_desc' => 'Advice on how to attract more clients and how to keep them happy',
+            'custom_class' => 'icon-business',
+            'has_child' => FALSE,
+          ),
+        ),
+      ),
+    ),
+    'advise_support_all_advice_category' => array(
+      '0' => array(
+        'term_name' => 'All audiences',
+        'term_desc' => '',
+        'has_child' => FALSE,
+      ),
+    ),
+    'article_category' => array(
+      '0' => array(
+        'term_name' => 'Dulux',
+        'term_desc' => '',
+        'has_child' => FALSE,
+      ),
+      '1' => array(
+        'term_name' => 'Products',
+        'term_desc' => '',
+        'has_child' => TRUE,
+        'child_terms' => array(
+          '0' => array(
+            'term_name' => 'Planet possible',
+            'term_desc' => '',
+            'has_child' => TRUE,
+            'child_terms' => array(
+              '0' => array(
+                'term_name' => 'Hallbar development',
+                'term_desc' => '',
+                'has_child' => FALSE,
+              ),
+            ),
+          ),
+        ),
+      ),
+      '2' => array(
+        'term_name' => 'Colours',
+        'term_desc' => '',
+        'has_child' => FALSE,
+      ),
+      '3' => array(
+        'term_name' => 'Advice',
+        'term_desc' => '',
+        'has_child' => TRUE,
+        'child_terms' => array(
+          '0' => array(
+            'term_name' => 'FAQ',
+            'term_desc' => '',
+            'has_child' => FALSE,
+          ),
+          '1' => array(
+            'term_name' => 'Knowledge',
+            'term_desc' => '',
+            'has_child' => TRUE,
+            'child_terms' => array(
+              '0' => array(
+                'term_name' => 'Work',
+                'term_desc' => '',
+                'has_child' => FALSE,
+              ),
+              '1' => array(
+                'term_name' => 'Clients',
+                'term_desc' => '',
+                'has_child' => FALSE,
+              ),
+              '2' => array(
+                'term_name' => 'Business',
+                'term_desc' => '',
+                'has_child' => FALSE,
+              ),
+            ),
+          ),
+          '2' => array(
+            'term_name' => 'Training',
+            'term_desc' => '',
+            'has_child' => FALSE,
+          ),
+        ),
+      ),
+      '4' => array(
+        'term_name' => 'My workspace',
+        'term_desc' => '',
+        'has_child' => FALSE,
+      ),
+      '5' => array(
+        'term_name' => 'Stores',
+        'term_desc' => '',
+        'has_child' => FALSE,
+      ),
+    ),
+    'workspace_job_name_suggestions' => array(
+      '0' => array(
+        'term_name' => 'Living Room',
+        'term_desc' => '',
+        'has_child' => FALSE,
+      ),
+      '1' => array(
+        'term_name' => 'Kitchen',
+        'term_desc' => '',
+        'has_child' => FALSE,
+      ),
+      '2' => array(
+        'term_name' => 'Bathroom',
+        'term_desc' => '',
+        'has_child' => FALSE,
+      ),
+    ),
+  );
+
+  foreach ($painters_article_content_terms as $vocub_name => $vocub_terms) {
+    $vocabulary = taxonomy_vocabulary_machine_name_load($vocub_name);
+    $vocabulary_id = $vocabulary->vid;
+    foreach ($vocub_terms as $parent_term) {
+      $parent_term_tid = _painters_create_taxonomy_term($vocabulary_id, $parent_term['term_name'], $parent_term['term_desc'], $parent_tid = 0);
+      if ($parent_term['has_child'] == TRUE && isset($parent_term['child_terms']) && !empty($parent_term['child_terms'])) {
+        foreach ($parent_term['child_terms'] as $child_term) {
+          $custom_class = !empty($child_term['custom_class']) ? $child_term['custom_class'] : '';
+          $child_term_tid = _painters_create_taxonomy_term($vocabulary_id, $child_term['term_name'], $child_term['term_desc'], $parent_term_tid, 'en', $custom_class);
+          if ($child_term['has_child'] == TRUE && isset($child_term['child_terms']) && !empty($child_term['child_terms'])) {
+            foreach ($child_term['child_terms'] as $sub_child_term) {
+              $sub_child_term_tid = _painters_create_taxonomy_term($vocabulary_id, $sub_child_term['term_name'], $sub_child_term['term_desc'], $child_term_tid);
+            }
+          }
+        }
+      }
+    }
+  }
+  drush_print_r("All Taxonomy terms has been created.");
+}
+
+/**
+ * Helper function to create a taxonomy terms
+ *
+ * @param integer $vocabulary_id
+ *        	of the vocabulary
+ * @param string $term_name
+ *        	title of the term
+ *
+ * @return mixed return tid if creation succeed, else return FALSE
+ */
+function _painters_create_taxonomy_term($vocabulary_id, $term_name = '', $term_desc = '', $parent_tid = 0, $lang = 'en', $custom_class = '') {
+  if (!empty($vocabulary_id) && !empty($term_name)) {
+    $term = new stdClass();
+    $term->name = $term_name;
+    $term->vid = $vocabulary_id;
+    $term->language = $lang;
+    if (!empty($term_desc)) {
+      $term->description = $term_desc;
+    }
+    if (!empty($parent_tid)) {
+      $term->parent = array(
+        $parent_tid,
+      );
+    }
+    if (!empty($custom_class)) {
+      $term->field_advice_custom_class['und'][0]['value'] = $custom_class;
+    }
+    taxonomy_term_save($term);
+    drush_print_r("Taxonomy term '" . $term_name . "' is created.");
+    return $term->tid;
+  }
+  return FALSE;
+}
+
+/**
+ * Implements hook_quicktabs_default_quicktabs().
+ */
+function painters_deployment_quicktabs_default_quicktabs() {
+  $export = array();
+  $tabs = _painters_get_quicktab_tabs();
+
+  $quicktabs = new stdClass();
+  /* Edit this to true to make a default quicktabs disabled initially */
+  $quicktabs->disabled = FALSE;
+  $quicktabs->api_version = 1;
+  $quicktabs->machine_name = 'advise_tabs';
+  $quicktabs->ajax = 1;
+  $quicktabs->hide_empty_tabs = FALSE;
+  $quicktabs->default_tab = '0';
+  $quicktabs->title = 'Advise Tabs';
+  $quicktabs->tabs = $tabs;
+  $quicktabs->renderer = 'quicktabs';
+  $quicktabs->style = 'default';
+  $quicktabs->options = array();
+
+  $export['advise_tabs'] = $quicktabs;
+  return $export;
+}
+
+/**
+ * This function is used to get the content URL with language code
+ *
+ * @param unknown $url
+ * @param unknown $lang_code
+ *
+ * @return A
+ * $type
+ */
+function _painters_create_content_url($url, $lang_code, $query_parms = FALSE) {
+  //If language code is empty then
+  //get default language code
+  if (empty($lang_code)) {
+    $lang_code = _get_current_users_language();
+  }
+  //Checking Language code provided in the URL
+  //If provided the removing language then using url() function
+  $url_params = explode('/', $url);
+  if (isset($url) && $lang_code == $url_params[0]) {
+    unset($url_params[0]);
+  }
+
+  if ($query_parms) {
+    $url = url($url, array('query' => $query_parms));
+  }
+  else {
+    $url = url($url);
+  }
+  return $url;
+}
+
+/**
+ * Implements hook_variable_info().
+ */
+function painters_deployment_variable_info($options) {
+  $variable['image_help_text'] = array(
+    'title' => t('Image help text.', array(), $options),
+    'description' => t('Help text for image'),
+    'type' => 'string',
+    'default' => t('Image help text.', array(), $options),
+    'group' => 'image_help_link',
+  );
+  $variable['image_help_link'] = array(
+    'title' => t('Image help link.', array(), $options),
+    'description' => t('Link for help text'),
+    'type' => 'string',
+    'default' => t('Image help link.', array(), $options),
+    'group' => 'image_help_link',
+  );
+  return $variable;
+}
+
+/**
+ * Implements hook_variable_group_info().
+ */
+function painters_deployment_variable_group_info() {
+  $groups['image_help_link'] = array(
+    'title' => t('Image help link'),
+    'description' => t('isplay of image dimension.n'),
+    'access' => 'administer site configuration',
+    'path' => array(
+      'admin/config/painters/image-help-link',
+    ),
+  );
+  return $groups;
+}
+
+/**
+ * provide dynamic tabs based on taxonomy terms
+ */
+function _painters_get_quicktab_tabs() {
+  $vocabulary = taxonomy_vocabulary_machine_name_load('advise_support_category');
+  $terms = taxonomy_get_tree($vocabulary->vid);
+  $tabs = array();
+  $tabs[] = array(
+    'path' => 'painters-ajax/quicktabs/advise',
+    'title' => painters_utils_get_label('new_articles_tabs_label_all'),
+    'weight' => 0,
+    'type' => 'callback',
+  );
+  foreach ($terms as $term) {
+    if ($term->depth == 0) {
+      continue;
+    }
+
+    $term_nodes = taxonomy_select_nodes($term->tid, FALSE);
+    if (count($term_nodes)) {
+      $tabs[] = array(
+        'path' => 'painters-ajax/quicktabs/advise/' . $term->tid,
+        'title' => $term->name,
+        'weight' => $term->weight,
+        'type' => 'callback',
+      );
+    }
+  }
+  return $tabs;
+}
+
+/**
+ * Deleting brand collection order multifield
+ */
+function _painters_delete_brand_cc_field() {
+  if ($instance = field_info_instance('node', 'field_brand_collection_order', 'brand')) {
+    field_delete_instance($instance, TRUE);
+    field_purge_batch(1);
+    drush_print_r("field_brand_collection_order field has been deleted succesfully.");
+  }
+  features_revert(array(
+    'feature_painters_gpp_content_types',
+  ));
+}
+
+/**
+ * Implements hook_widget_form_alter().
+ * Media browser for image is not supporting the Help text with token
+ * Overriding the hook to support only for the type image.
+ */
+function painters_deployment_field_widget_form_alter(&$element, &$form_state, $context) {
+  // Add a css class to widget form elements for all fields of type mytype.
+  if ($context['field']['type'] == 'image') {
+    // Be sure not to overwrite existing attributes.
+    if (!empty($element['0']['#description']) && !empty($context['instance']['description'])) {
+      $instance = $context['instance'];
+      if (module_exists('i18n_field')) {
+        $instance = i18n_string_object_translate('field_instance', $instance);
+      }
+      $element['0']['#description'] = field_filter_xss(token_replace($instance['description']));
+    }
+  }
+}
+
+/**
+ * Returns link field URL
+ *
+ * @param unknown $link_data
+ */
+function _painters_get_link_field_url($link_data, $lang_code = FALSE) {
+  if (isset($link_data['url']) && !empty($link_data['url'])) {
+    if ($lang_code == FALSE) {
+      $lang_code = _get_current_users_language();
+    }
+    return _painters_create_content_url($link_data['url'], $lang_code, $link_data['query']);
+  }
+  return '';
+}
+
+/**
+ * Impelemntation of form submit function for default sitefurntire form.
+ */
+function _painters_sitefurniture_default() {
+  $labels = _get_painters_labels();
+  foreach ($labels as $label_key => $value) {
+    variable_set($label_key, $value);
+  }
+  drush_print_r("All sitefurniture config form values has been set to default English.");
+}
+
+
+/**
+ * Implements hook_form_node_admin_content_alter().
+ * disable node clone option in Painters
+ */
+function painters_deployment_form_node_admin_content_alter(&$form, &$form_state, $form_id) {
+  foreach ($form['admin']['nodes']['#options'] as $nid => $row) {
+    unset($form['admin']['nodes']['#options'][$nid]['operations']['data']['#links']['clone']);
+  }
+}

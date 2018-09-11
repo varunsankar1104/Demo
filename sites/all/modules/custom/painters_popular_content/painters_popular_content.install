@@ -1,0 +1,51 @@
+<?php
+
+/**
+ * @file
+ * Painter Popular Content module install file.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function painters_popular_content_uninstall() {}
+
+/**
+ * Implements hook_schema().
+ */
+function painters_popular_content_schema() {
+  $schema = array();
+
+  $schema['painters_popular_content'] = array(
+    'fields' => array(
+      'nid' => array(
+        'description' => 'The unique NID of the Searched Node i.e NID.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'node_type' => array(
+        'description' => 'The Content type, for example "color", "artilce", or "product".',
+        'type' => 'varchar',
+        'length' => '128',
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'count' => array(
+        'description' => 'The number of times this entity has been searched.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+    ),
+    'primary key' => array(
+      'nid',
+      'node_type',
+    ),
+  );
+
+  return $schema;
+}
+

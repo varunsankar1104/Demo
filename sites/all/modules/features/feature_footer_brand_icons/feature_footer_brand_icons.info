@@ -1,0 +1,15 @@
+name = feature footer brand icons
+description = feature footer brand icons
+core = 7.x
+package = Features
+dependencies[] = fe_block
+dependencies[] = menu
+dependencies[] = social_media_links
+dependencies[] = views
+features[ctools][] = views:views_default:3.0
+features[fe_block_settings][] = menu-menu-footer-menu
+features[fe_block_settings][] = social_media_links-social-media-links
+features[fe_block_settings][] = views-footer_brand_icons-block
+features[features_api][] = api:2
+features[views_view][] = footer_brand_icons
+features_exclude[dependencies][ctools] = ctools

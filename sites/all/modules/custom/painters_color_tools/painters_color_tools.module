@@ -1,0 +1,206 @@
+<?php
+
+/**
+ * @file
+ * Code for the painters_color_tools module.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function painters_color_tools_menu() {
+  $items['admin/config/painters/color-tools-sort-in-color-tools-landing-page'] = array(
+    'title' => 'Reorder Color Tools in Color Tools Overview Page',
+    'description' => 'Color Tools in the Color Tools Overview can be re-arranged here',
+    'position' => 'left',
+    'weight' => -110,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_color_tools_listing_form',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_color_tools.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function painters_color_tools_theme($existing, $type, $theme, $path) {
+  $themes = array(
+    'painters_color_tools_listing_form' => array(
+      'render element' => 'form',
+    ),
+    'colour_tool_detail' => array(
+      'template' => 'colour-tool-detail',
+      'variables' => array(),
+    ),
+    'color_tools_filter' => array(
+      'template' => 'color-tools-filter',
+      'path' => $path . '/templates/theme',
+      'type' => 'theme',
+    ),
+  );
+  return $themes;
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function painters_color_tools_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'painters_color_tools'),
+    'template path' => drupal_get_path('module', 'painters_color_tools'),
+  );
+}
+
+/**
+ * Implements hook_Form_ID_alter().
+ */
+function painters_color_tools_form_color_tools_node_form_alter(&$form, $form_state, $form_id) {
+  // Moving Order weigth field to Vertical tabs
+  $form['field_ct_order_weight']['#type'] = 'fieldset';
+  $form['field_ct_order_weight']['#collapsible'] = TRUE;
+  $form['field_ct_order_weight']['#collapsed'] = TRUE;
+  $form['field_ct_order_weight']['#weight'] = 12;
+  $form['field_ct_order_weight']['#title'] = t('Order Weight');
+  $form['field_ct_order_weight']['#group'] = 'additional_settings';
+}
+
+/**
+ * Implements hook_Form_alter().
+ */
+function painters_color_tools_form_alter(&$form, &$form_state, $form_id) {
+  if ($form_id == 'views_exposed_form' && $form_state['view']->name == 'color_tools_overview' && $form_state['view']->current_display == 'color_tools_list') {
+    // t('All
+    $form['field_ct_target_audience_tid']['#options']['All'] = painters_utils_get_label('color_tools_all_audiences_label');
+    // audiences');
+  }
+}
+
+/**
+ * Implements hook_views_pre_render().
+ */
+function painters_color_tools_views_pre_render(&$view) {
+  // Color Tools Overview page
+  // $view->current_display == 'color_tools_list' $view->current_display == 'attachment_1'
+  if ($view->name == 'color_tools_overview') {
+    $options = array(
+      'absolute' => TRUE,
+    );
+    $i = 0;
+    foreach ($view->result as $index => $value) {
+      if (isset($value->_field_data['nid']['entity']->field_ct_target_audience)) {
+        $key_field_ct_target_audience = key($value->_field_data['nid']['entity']->field_ct_target_audience);
+        foreach ($value->_field_data['nid']['entity']->field_ct_target_audience[$key_field_ct_target_audience] as $keys => $vals) {
+          $value->target_audience[] = $vals;
+        }
+      }
+      if (isset($value->field_field_ct_hero_image[0]['raw']['uri'])) {
+        $value->hero_image = painters_utils_file_create_url($value->field_field_ct_hero_image[0]['raw']['uri']);
+        $value->hero_image_small_1 = _painters_image_style_url('color_tools_overview_small_hero_images2', $value->field_field_ct_hero_image[0]['raw']['uri']);
+        if ($i != 0) {
+          $value->hero_image_small_2 = _painters_image_style_url('collection_overview_page_secondary_image2', $value->field_field_ct_hero_image[0]['raw']['uri']);
+        }
+        else {
+          $value->hero_image_small_2 = painters_utils_file_create_url($value->field_field_ct_hero_image[0]['raw']['uri']);
+        }
+      }
+
+      if (isset($value->field_field_call_to_action_details[0]['raw']['value']) && $value->field_field_call_to_action_details[0]['raw']['value'] == 'color_tools') {
+        // Color tool detail page
+        $value->link_title = t($value->field_field_color_details_page_label[0]['raw']['safe_value']);
+        $value->link_url_target = '';
+        // Node ID
+        $color_tool_nid = $value->nid;
+        $value->link_url = url('node/' . $color_tool_nid, $options);
+      }
+      elseif (isset($value->field_field_call_to_action_details[0]['raw']['value']) && $value->field_field_call_to_action_details[0]['raw']['value'] == 'tpty_lnk') {
+        // 3rd Party Link
+        $value->link_title = t($value->field_field_3_rd_party_link[0]['raw']['title']);
+        $value->link_url_target = 'target="_blank"';
+        $value->link_url = _painters_get_link_field_url($value->field_field_3_rd_party_link[0]['raw']);
+      }
+      elseif (isset($value->field_field_call_to_action_details[0]['raw']['value']) && $value->field_field_call_to_action_details[0]['raw']['value'] == 'dl_lnk') {
+        // Download Link
+        $value->link_title = t($value->field_field_download_link[0]['raw']['title']);
+        $value->link_url_target = 'target="_blank"';
+        $value->link_url = _painters_get_link_field_url($value->field_field_download_link[0]['raw']);
+      }
+      // $value->link_title = truncate_utf8($value->link_title, 20, $wordsafe = TRUE, $add_ellipsis = TRUE);
+
+      if ($i % 2 == 0) {
+        $value->section_class = 'pull-left';
+      }
+      else {
+        $value->section_class = 'pull-right';
+      }
+      $i++;
+      $value->link_title = truncate_utf8($value->link_title, 40, $wordsafe = TRUE, $add_ellipsis = TRUE);
+    }
+  }
+}
+
+/**
+ * Returns big block color NID i.e 1st block in color tool overview page.
+ */
+function _get_big_block_color_tool_nid() {
+  $color_tool_big_block_nid = db_query("SELECT n.nid
+                                FROM
+                                {node} n
+                                LEFT JOIN {field_data_field_ct_order_weight} w ON n.nid = w.entity_id AND (w.entity_type = 'node' AND w.deleted = '0')
+                                WHERE (( (n.status = '1') AND (n.type IN  ('color_tools')) ))
+                                ORDER BY w.field_ct_order_weight_value ASC
+                                LIMIT 1")->fetchField();
+  return $color_tool_big_block_nid;
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function painters_color_tools_block_info() {
+  $blocks['color_tools_filter'] = array(
+    'info' => t('color tools filter'),
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function painters_color_tools_block_view($delta = '') {
+  $block = array();
+
+  switch ($delta) {
+    case 'color_tools_filter':
+      $block['subject'] = t('');
+      $block['content'] = color_tools_filters();
+      break;
+  }
+  return $block;
+}
+
+/**
+ * show me articles filter for all advice page
+ */
+function color_tools_filters() {
+  $vocabulary = taxonomy_vocabulary_machine_name_load('color_tools_audience_');
+  $terms = taxonomy_get_tree($vocabulary->vid);
+  $courses = array();
+  foreach ($terms as $term) {
+    $courses['taxonomy_terms'][$term->tid] = $term->name;
+  }
+  $courses['all_audiences'] = painters_utils_get_label('color_tools_all_audiences_label');
+  $output = theme('color_tools_filter', array(
+      'color_tools_categories' => $courses,
+      'show_me_label' => t('Show me'),
+    ));
+  return $output;
+}
+

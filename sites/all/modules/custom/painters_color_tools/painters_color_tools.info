@@ -1,0 +1,7 @@
+name = Painter Color Tools Module
+description = Manages the Color Tools related functionalities
+package = Painters
+core = 7.x
+dependencies[] = feature_painters_color_tools
+;dependencies[] = painters_deployment
+;dependencies[] = flag

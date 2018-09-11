@@ -1,0 +1,7 @@
+<?php
+
+/**
+ * @file
+ * Code for the feature_painters_color_tools feature.
+ */
+include_once 'feature_painters_color_tools.features.inc';

@@ -1,0 +1,6 @@
+name = Painters Google Tag Manager
+description = Managing the custom GTM Datalayer Object for Painters.
+core = 7.x
+package = Platform
+version = 7.x-1.0
+project = painters_google_tag_manager

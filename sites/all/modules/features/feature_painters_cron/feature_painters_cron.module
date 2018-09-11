@@ -1,0 +1,7 @@
+<?php
+
+/**
+ * @file
+ * Code for the Feature Painters Cron feature.
+ */
+include_once 'feature_painters_cron.features.inc';

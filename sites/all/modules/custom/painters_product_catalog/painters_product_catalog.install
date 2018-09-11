@@ -1,0 +1,208 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the standard installation profile.
+ */
+
+/**
+ * Implements hook_install().
+ *
+ * Perform actions to set up the site for this profile.
+ *
+ * @see system_install()
+ */
+function painters_product_catalog_install() {
+  /* create landing page for product catalog page */
+
+  manage_product_catalogue();
+}
+
+function manage_product_catalogue() {
+  $productcatalog_nid = _create_landing_pages_product_catalog();
+  _create_product_catalogue_bean_blocks();
+  // Assign the bean block to the products catalog page
+  _assign_productcatalog_beanblocks($productcatalog_nid);
+}
+
+/**
+ * Implementation of _create_landing_pages_product_catalog
+ */
+function _create_landing_pages_product_catalog() {
+  // Create the landing page for : Product Catalog page
+  $node = new stdClass();
+  $node->type = 'panopoly_landing_page';
+  node_object_prepare($node);
+
+  $node->title = 'Product Catalog';
+  $node->field_dlr_sitemap_value['und'][0]['value'] = '30';
+  $node->language = 'und';
+  $node->status = 1;
+
+  $path = t('products');
+  $node->path = array(
+    'alias' => $path,
+  );
+
+  node_save($node);
+
+  return $node->nid;
+}
+
+/**
+ * Implementation of _create_bean_blocks for product catalogue page
+ */
+function _create_product_catalogue_bean_blocks() {
+  global $language;
+  $lang_code = $language->language;
+  // Create the bean blocks : For Product catalogue Image and content section
+  $bean = bean_create(array(
+      'type' => 'bean_block',
+    ));
+  $bean->label = 'Image and Content Product Catalogues';
+  $bean->title = '';
+  $bean->delta = 'imgcnt-prdt-ctlg-block';
+  $bean->field_bean_body_text[$lang_code]['0']['value'] = '<div class="row">
+			<div class="col-xs-12">
+				<div class="panel panel--cols panel--hero ">
+					<div class="row equalheight">
+						<div class="col-xs-12 col-sm-8 pull-right">
+							<div class="panel">
+								<div class="panel__banner panel__content " style="
+										background-image: url(\'/profiles/painters/themes/custom/painters/assets/toolkit/images/packshot1.png\'); 
+									">
+									<div class="panel__content text-center hidden hidden">
+											
+										<div class="panel__arrow visible-xs">
+											<svg class="icon icon-arrow-down">
+												<use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-arrow-down_16px"></use>
+											</svg>
+										</div>
+									</div>
+									<div class="img-container center-block">
+										<img src="/profiles/painters/themes/custom/painters/assets/toolkit/images/packshot1.png" class="img-responsive " alt="">
+									</div>	
+                </div>							
+							</div>		
+            </div>
+						<div class="col-xs-12 col-sm-4">
+							<div class="panel">
+								<div class="panel__content text-center">
+									<h3>Planet Possible<br>Do More With Less</h3>
+									<p>Bij Sikkens zijn we overtuigd dat meer doen met minder essentieel is voor een succesvolle onderneming.</p>
+								</div>				<div class="panel__buttons">
+									<a href="#" class="btn-ripple button-content ">
+										Read more
+										<svg class="ripple-obj">
+											<use height="100" width="100" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#ripple-circle" class="js-ripple"></use>
+										</svg>
+									</a>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>			
+      </div>
+		</div>';
+  $bean->field_bean_body_text[$lang_code]['0']['format'] = 'full_html';
+  $bean->save();
+  // Create the bean blocks : For Product catalogue Loyalty program section.
+  $bean = bean_create(array(
+      'type' => 'bean_block',
+    ));
+  $bean->label = 'Loyalty program find product catalogues';
+  $bean->title = '';
+  $bean->delta = 'prdcat-loyal-findprd-block';
+  $bean->field_bean_body_text[$lang_code]['0']['value'] = '<div class="row vertical-bottom equalheight">
+			<div class="col-xs-12 col-sm-6">
+				<div class="panel">
+					<div class="img-container center-block">
+						<img src="/profiles/painters/themes/custom/painters/assets/toolkit/images/loyalty-program.jpg" class="img-responsive " alt="">
+					</div>	<div class="panel__content text-center">
+						<h3>Join our loyalty program</h3>
+						<p>Lorem ipsum dolor sit amer consectetuer sed adipiscing</p>
+					</div>
+					<div class="panel__buttons text-center js-equalheight-item">
+						<a href="#" class="btn-ripple button-content button--block">
+							Read more
+							<svg class="ripple-obj">
+								<use height="100" width="100" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#ripple-circle" class="js-ripple"></use>
+							</svg>
+						</a>
+					</div>
+				</div>
+			</div>
+			<div class="col-xs-12 col-sm-6">
+				<div class="panel">
+					<div class="img-container center-block">
+						<img src="/profiles/painters/themes/custom/painters/assets/toolkit/images/find-product.jpg" class="img-responsive " alt="">
+					</div>	<div class="panel__content text-center">
+						<h3>Find the right product</h3>
+						<p>Lorem ipsum dolor sit amer consectetuer sed adipiscing</p>
+					</div>
+					<div class="panel__buttons text-center js-equalheight-item">
+						<a href="#" class="btn-ripple button-content button--block">
+							View products
+							<svg class="ripple-obj">
+								<use height="100" width="100" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#ripple-circle" class="js-ripple"></use>
+							</svg>
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+    <div class="row vertical-bottom">
+			<div class="col-xs-12">
+				<div class="img-container ">
+					<img src="/profiles/painters/themes/custom/painters/assets/toolkit/images/paintcan-dt.png" class="img-responsive " alt="">
+				</div>			
+      </div>
+		</div>';
+  $bean->field_bean_body_text[$lang_code]['0']['format'] = 'full_html';
+  $bean->save();
+}
+
+/**
+ * Implementation of _assign_productpage_beanblocks
+ */
+function _assign_productcatalog_beanblocks($nid) {
+  $node = node_load($nid);
+
+  $display = $node->panelizer['page_manager']->display;
+
+  if (!is_numeric($display->did)) {
+    $new_display = panels_save_display($display);
+    $node->panelizer['page_manager']->display = $new_display;
+    $node->panelizer['page_manager']->display_is_modified = TRUE;
+    node_save($node);
+  }
+
+  $display = panels_load_display($node->panelizer['page_manager']->display->did);
+
+  $region = 'contentmain';
+
+  $display->content = array();
+  $display->panels[$region] = array();
+
+  // Add a new pane
+  $new_pane = panels_new_pane('block', 'bean-prdcat-loyal-findprd-block', TRUE);
+  $new_pane->panel = $region;
+  $display->panels[$region][] = $new_pane->pid;
+  $display->content[$new_pane->pid] = $new_pane;
+
+  panels_save_display($display);
+
+  $new_pane = panels_new_pane('block', 'bean-imgcnt-prdt-ctlg-block', TRUE);
+  $new_pane->panel = $region;
+  $display->panels[$region][] = $new_pane->pid;
+  $display->content[$new_pane->pid] = $new_pane;
+
+  panels_save_display($display);
+
+  // Save the node after the panelizer update
+  $node = node_load($node->nid, NULL, TRUE);
+  $node->panelizer['page_manager']->display_is_modified = TRUE;
+
+  node_save($node);
+}
+

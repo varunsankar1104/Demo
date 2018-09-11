@@ -1,0 +1,84 @@
+<?php
+
+/**
+ * @file
+ * Primary hook implementations for Metatag:Hreflang.
+ */
+
+/**
+ * Implements hook_ctools_plugin_api().
+ */
+function painters_metatag_hreflang_ctools_plugin_api($owner, $api) {
+  if ($owner == 'metatag' && $api == 'metatag') {
+    return array(
+      'version' => 1,
+    );
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function painters_metatag_hreflang_theme() {
+  $info['painters_metatag_hreflang'] = array(
+    'render element' => 'element',
+  );
+
+  return $info;
+}
+
+/**
+ * Theme callback for a rel link tag with the hreflang.
+ *
+ * The format is:
+ * <link rel="[name]" hreflang="[langcode]" href="[value]" />
+ */
+function theme_painters_metatag_hreflang($variables) {
+  $element = &$variables['element'];
+  $element['#name'] = 'alternate';
+  $args = array(
+    '#name' => 'rel',
+    '#value' => 'href',
+    '#hreflang' => 'hreflang',
+  );
+  element_set_attributes($element, $args);
+  unset($element['#value']);
+  return theme('html_tag', $variables);
+}
+
+/**
+ * Implements hook_page_build().
+ */
+function painters_metatag_hreflang_page_build(&$page) {
+  global $base_url, $language;
+  $link = array();
+
+  // No need to add hreflang tags for 404/403 pages.
+  $status = drupal_get_http_header('status');
+  if ($status == '404 Not Found' || $status == '403 Forbidden') {
+    return;
+  }
+  $link['href'] = $base_url . '/' . request_path();
+  $link['absolute'] = TRUE;
+  if (drupal_get_query_parameters()) {
+    $link['query'] = drupal_get_query_parameters();
+  }
+  $country_code = variable_get('site_default_country', NULL);
+  if ($country_code) {
+    $lang = $language->language;
+    $href = url($link['href'], $link);
+    $element = array(
+      // The #tag is the html tag -
+      '#tag' => 'link',
+        // Set up an array of attributes inside the tag
+      '#attributes' => array(
+        'rel' => 'alternate',
+        'href' => $href,
+        'hreflang' => $lang . '-' . $country_code,
+      ),
+    );
+    $id = 'fl_herflang_' . $country_code;
+    drupal_add_html_head($element, $id);
+  }
+}
+

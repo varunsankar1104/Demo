@@ -1,0 +1,7 @@
+<?php
+
+/**
+ * @file
+ * Code for the feature_painters_pathauto_pattern feature.
+ */
+include_once 'feature_painters_pathauto_pattern.features.inc';

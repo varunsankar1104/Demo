@@ -1,0 +1,4 @@
+name = Painter Popular content Module
+description = Painter Popular content related functionality
+package = Painters
+core = 7.x

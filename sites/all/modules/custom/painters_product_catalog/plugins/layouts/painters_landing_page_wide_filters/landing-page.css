@@ -1,0 +1,32 @@
+.page-admin .panel-col__wide, .page-node-panelizer-page-manager .panel-col__wide
+{
+  margin: 20px 0;
+}
+
+.page-admin .panel-painters__landing-page-content,
+.page-node-panelizer-page-manager .panel-painters__landing-page-content
+{
+  max-width: 80%;
+  margin: auto;
+  margin-top: 20px;
+}
+
+.page-admin .panel-painters__landing-page-content .row,
+.page-node-panelizer-page-manager .panel-painters__landing-page-content  .row
+{
+  margin-top: 10px;
+}
+
+.page-admin .ctools-auto-submit-full-form,
+.page-node-panelizer-page-manager .ctools-auto-submit-full-form {
+  width: 50%;
+  float: left;
+}
+
+.form-item-leave-node-title {
+  clear: both;
+}
+
+.option-text-aligner+.description {
+  clear: both;
+}

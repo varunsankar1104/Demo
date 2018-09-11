@@ -1,0 +1,443 @@
+<?php
+
+/**
+ * @file
+ * To handle training page hooks and function calls.
+ */
+
+/**
+ * Implements hook_menu((.
+ */
+function painters_training_menu() {
+  $items = array();
+
+  $items['training/register'] = array(
+    'title' => 'Training Registration form',
+    'description' => 'Training registration form',
+    'page callback' => 'training_register_page',
+    'access callback' => TRUE,
+  );
+  $items['advice/training/%/%'] = array(
+    'title' => 'Training registration Success',
+    'description' => 'Training registration Success',
+    'page callback' => 'training_registration_success',
+    'access callback' => TRUE,
+    'access arguments' => TRUE,
+  );
+  return $items;
+}
+
+/**
+ * Trining registration form
+ */
+function painters_training_registration_form($form, &$form_state) {
+  $member_values = range(1, 20);
+  $member_values = array_combine($member_values, $member_values);
+  global $language;
+  $form['email'] = array(
+    '#type' => 'textfield',
+    '#title' => painters_utils_get_label('training_email_address_label'),
+    '#default_value' => "",
+    '#attributes' => array(
+      'item_class' => array(
+        'form-group',
+        'required',
+      ),
+      'placeholder' => painters_utils_get_label('training_email_address_placeholder_label'),
+      'data-required-error' => painters_utils_get_label('training_email_address_required_label'),
+      'data-error' => painters_utils_get_label('training_email_address_error_label'),
+      'pattern' => '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,3}$',
+      'required' => TRUE,
+      'type' => 'email',
+    ),
+    '#help' => '<div class="help-block with-errors"></div>',
+    '#size' => 100,
+    '#maxlength' => 100,
+    '#required' => TRUE,
+  );
+  $form['members_count'] = array(
+    '#title' => painters_utils_get_label('training_people_attending_label'),
+    '#prefix' => '<div class="form-group quantity required"><div class="selectbox ">',
+    '#type' => 'select',
+    '#suffix' => '</div></div>',
+    '#attributes' => array(
+      'class' => array(
+        'quantity selectbox',
+      ),
+      'onchange' => "changeMembersCount(jQuery('option:selected', this).text())",
+    ),
+    '#required' => TRUE,
+    '#options' => $member_values,
+    '#default_value' => 1,
+  );
+  $form['submit_button'] = array(
+    '#type' => 'submit',
+    '#value' => painters_utils_get_label('training_submit_label'),
+    '#attributes' => array(
+      'class' => array(
+        'button-content btn-ripple',
+      ),
+      'onClick' => "return validateForm()",
+    ),
+  );
+  $form['#attributes'] = array(
+    'data-toggle' => 'validator',
+    'class' => array(
+      'js-form-validate',
+    ),
+    'name' => 'painters-training-registration-form',
+    'onsubmit' => "submitTrainingForm(email)",
+  );
+
+  $form['#submit'][] = 'painters_training_registration_form_submit';
+
+  return $form;
+}
+
+/**
+ * Training registration form submit
+ */
+function painters_training_registration_form_submit($form, &$form_state) {
+  global $language;
+  global $base_url;
+  $lang = $language->language;
+  $training_data = array();
+  $nid = check_plain(filter_xss($_GET['nid']));
+  $node = _painters_training_get_contents($nid, $lang);
+  $node = $node[$nid];
+  if ($node) {
+    if (isset($node['training_time']) && !empty($node['training_time'])) {
+      $training_time = date("H:i", $node['training_time']) . 'am';
+      if (isset($node['training_time2']) && !empty($node['training_time2'])) {
+        $training_time .= ' - ' . date("h:i", $node['training_time2']) . 'pm';
+      }
+    }
+    $date1 = date_create($node['training_value']);
+    $training_data['name'] = $node['title'];
+    $training_data['when_label'] = $node['when_label'];
+    $training_data['date'] = date_format($date1, "dS F Y");
+    $training_data['time'] = $training_time;
+    $training_data['address'] = isset($node['location_address']) ? $node['location_address'] : '';
+    $training_data['toemail'] = $node['email_label'];
+    $training_data['useremail'] = filter_xss($form_state['values']['email']);
+    $training_data['membercount'] = filter_xss($form_state['values']['members_count']);
+    $training_data['message'] = '';
+    $training_data['message'] .= "Subscriber email : " . $training_data['useremail'] . "<br>";
+    $training_data['message'] .= "Members count : " . $training_data['membercount'] . "<br>";
+    $training_data['message'] .= "Training Name : " . $training_data['name'] . "<br>";
+    $training_data['message'] .= "Training Date : " . $training_data['date'] . "<br>";
+    $training_data['message'] .= "Training Time : " . $training_data['time'] . "<br>";
+    $training_data['message'] .= "Training Address : " . $training_data['address'] . "<br>";
+
+    // store the data for success page
+    session_cache_set('training_data_' . $lang, $training_data);
+    // Submit data to SantaMaria API. Get the API and the endpoint details for the Survey APi
+    $api_base_url = variable_get('santa_maria_api');
+    $end_point = 'api/surveys';
+    // Construct the Data
+    $data = array(
+      // training-registeration-form - Form name has to be replaced
+      "formName" => 'contactus-form',
+      "formVersion" => 1,
+      "siteCode" => platform_sm_integration_get_site_id(),
+      "language" => platform_sm_integration_get_language_code(),
+      "formData" => array(
+        array(
+          "id" => "lastName",
+          "desc" => "Last Name",
+          "type" => "text",
+          "values" => array(
+            "",
+          ),
+        ),
+        array(
+          "id" => "email",
+          "desc" => "Email",
+          "type" => "text",
+          "values" => array(
+            $training_data['useremail'],
+          ),
+        ),
+        array(
+          "id" => "telephone",
+          "desc" => "Telephone",
+          "type" => "text",
+          "values" => array(
+            "1234567890",
+          ),
+        ),
+        array(
+          "id" => "query",
+          "desc" => "Your message",
+          "type" => "text",
+          "values" => array(
+            $training_data['message'],
+          ),
+        ),
+      ),
+    );
+
+    $url = $api_base_url . $end_point;
+
+    $response = drupal_http_request($url, array(
+        'method' => 'POST',
+        'data' => (!empty($data)) ? json_encode($data) : '',
+        'max_redirects' => 0,
+        'headers' => array(
+          'Content-Type' => 'application/json',
+          'Accept' => 'application/json',
+          'X-API-Key' => variable_get('santa_maria_api_key'),
+        ),
+      ));
+    if ($response->code == '201' && $response->status_message == 'Created') {
+      watchdog('training-registration', 'Training-registration - RESPONSE' . '<pre>' . print_r($response, TRUE) . '</pre>');
+      $path_alias = drupal_lookup_path('alias', 'node/' . $nid, $lang);
+      $pos = 0;
+      if (!drupal_multilingual()) {
+        $pos = 1;
+      }
+      $node_title = explode('/', $path_alias);
+      session_cache_set('training_nid_' . $node_title['2'], $nid);
+      $training_confirmation_url = variable_get('training_confirmation_url_alias_' . $lang);
+      $path = $training_confirmation_url . "/" . $node_title['2'] . '/' . t('thankyou');
+      drupal_goto($path);
+    }
+  }
+  drupal_set_message(painters_utils_get_label('training_register_error_label'), 'error');
+  $path = drupal_get_path_alias('node/' . $nid);
+  drupal_goto($path);
+}
+
+/**
+ * Implements hook_theme().
+ *
+ * Registration success.
+ */
+function painters_training_theme() {
+  return array(
+    'training_register_page' => array(
+      'template' => 'training-form',
+      'variables' => array(
+        'node' => NULL,
+      ),
+    ),
+    'training_registration_success' => array(
+      'template' => 'training-confirm',
+    ),
+  );
+}
+
+/**
+ * Custom success message.
+ */
+function training_registration_success() {
+  global $language;
+  $lang = $language->language;
+  $view = views_get_view('training_overview');
+  $view->set_display('panel_pane_1');
+  $view->pre_execute();
+  $view->execute();
+  $variables['related_Training'] = $view->render();
+  // load the node
+  $nid = session_cache_get('training_nid_' . arg(2));
+  $node = _painters_training_get_contents($nid, $lang);
+  $node = $node[$nid];
+  if ($node) {
+    $variables['when_label'] = isset($node['when_label']) ? $node['when_label'] : '';
+    $variables['email_label'] = isset($node['email_label']) ? $node['email_label'] : '';
+    $variables['email'] = isset($node['email']) ? $node['email'] : '';
+    $variables['training_date'] = '';
+    if ($node['training_value']) {
+      $date1 = date_create($node['training_value']);
+      $variables['training_date'] = date_format($date1, "dS F Y");
+    }
+
+    if (!empty($node['training_time'])) {
+      if (isset($node['training_time']) && !empty($node['training_time'])) {
+        $variables['training_time'] = date("H:i", $node['training_time']) . 'am';
+        if (isset($node['training_time2']) && !empty($node['training_time2'])) {
+          $variables['training_time'] .= ' - ' . date("h:i", $node['training_time2']) . 'pm';
+        }
+      }
+    }
+    // Contact Section
+    $variables['contact_label'] = isset($node['contact_label']) ? $node['contact_label'] : '';
+    $variables['telephone_label'] = isset($node['telephone_label']) ? $node['telephone_label'] : '';
+    $variables['telephone_value'] = isset($node['telephone_number']) ? $node['telephone_number'] : '';
+    if (isset($node['fax_label']) && !empty($node['fax_label'])) {
+      $variables['fax_label'] = $node['fax_label'];
+    }
+
+    if (isset($node['fax_number']) && !empty($node['fax_number'])) {
+      $variables['fax_value'] = $node['fax_number'];
+    }
+    // Where Section
+    $variables['where_label'] = isset($node['where_label']) ? $node['where_label'] : '';
+    if (isset($node['location_label'])) {
+      $variables['location_label'] = $node['location_label'];
+    }
+    if (isset($node['location_address'])) {
+      $variables['location_address'] = $node['location_address'];
+    }
+    $google_map_address = preg_replace('/\s+/', '+', $variables['location_label'] . '+' . strip_tags($variables['location_address']));
+    $variables['gmap_link'] = 'http://maps.google.com/?q=' . $google_map_address;
+  }
+  $result = array_merge(session_cache_get('training_data_' . $lang), $variables);
+  $labels = array(
+    'training_thankyou_label' => painters_utils_get_label('training_thankyou_label'),
+    'training_success_one_label' => painters_utils_get_label('training_success_one_label'),
+    'training_success_two_label' => painters_utils_get_label('training_success_two_label'),
+    'training_success_three_label' => painters_utils_get_label('training_success_three_label'),
+    'training_related_courses_label' => painters_utils_get_label('training_related_courses_label'),
+  );
+
+  $output = theme('training_registration_success', array(
+      'training_data' => $result,
+      'labels' => $labels,
+    ));
+  return $output;
+}
+
+/**
+ * Custom registration callback.
+ */
+function training_register_page($variables) {
+  global $language;
+  $lang = $language->language;
+  $training_data = array();
+  $training_data['node_id'] = check_plain(filter_xss($_GET['nid']));
+  $nid = preg_replace('/^([\'"])(.*)\\1$/', '\\2', $training_data['node_id']);
+  // $node = node_load ( $nid );
+  $node = _painters_training_get_contents($nid, $lang);
+  $node = $node[$nid];
+  $training_data['name'] = $node['title'];
+  $training_data['training_date'] = isset($node['training_value']) ? format_date(strtotime($node['training_value']), 'custom', PAINTERS_TRAINING_DATE_FORMAT) : '';
+  $training_data['location_address'] = strip_tags($node['location_address']);
+  if (isset($node['training_time']) && !empty($node['training_time'])) {
+    $training_data['training_time'] = date("H:i", $node['training_time']) . 'am';
+    if (isset($node['training_time2']) && !empty($node['training_time2'])) {
+      $training_data['training_time'] .= ' - ' . date("h:i", $node['training_time2']) . 'pm';
+    }
+  }
+  $training_data['email_label'] = isset($node['email_label']) ? $node['email_label'] : '';
+  $labels = array(
+    'register_for' => painters_utils_get_label('training_register_for_label'),
+  );
+  $output = theme('training_register_page', array(
+      'training_data' => $training_data,
+      'labels' => $labels,
+    ));
+  print $output;
+  exit();
+}
+/**
+ * Implement views query alter
+ * @param unknown $view
+ * @param unknown $query
+ */
+function painters_training_views_query_alter(&$view, &$query) {
+  if ($view->name === 'training_overview' && !_painters_training_display_check()) {
+    unset($query->where[1]['conditions'][2]);
+  }
+}
+
+/**
+ * Returns FALSE if site is esenor or TRUE otherwise.
+ */
+function _painters_training_display_check() {
+  $site_id = platform_sm_integration_get_site_id();
+  return $site_id == 'esenor' ? FALSE : TRUE;
+}
+
+/**
+ * Function to get the training node contents
+ * Based on language code
+ */
+function _painters_training_get_contents($nid, $lang) {
+  $query = db_select('node', 'n');
+  $query->leftJoin('field_data_field_training_date_time', 'f1', 'n.nid = f1.entity_id');
+  $query->leftJoin('field_data_field_training_time', 'f2', 'n.nid = f2.entity_id');
+  $query->leftJoin('field_data_field_training_email_label', 'f3', 'n.nid = f3.entity_id');
+  $query->leftJoin('field_data_field_tr_location_address', 'f4', 'n.nid = f4.entity_id');
+  $query->leftJoin('field_data_field_training_contact_label', 'f5', 'n.nid = f5.entity_id');
+  $query->leftJoin('field_data_field_tr_telephone_label', 'f6', 'n.nid = f6.entity_id');
+  $query->leftJoin('field_data_field_tr_telephone_number', 'f7', 'n.nid = f7.entity_id');
+  $query->leftJoin('field_data_field_tr_fax_number', 'f8', 'n.nid = f8.entity_id');
+  $query->leftJoin('field_data_field_when_label', 'f9', 'n.nid = f9.entity_id');
+  $query->leftJoin('field_data_field_tr_location_label', 'f10', 'n.nid = f10.entity_id');
+  $query->leftJoin('field_data_field_training_email', 'f11', 'n.nid = f11.entity_id');
+  $query->leftJoin('field_data_field_tr_fax_label', 'f12', 'n.nid = f12.entity_id');
+  $query->leftJoin('field_data_field_tr_where_label', 'f13', 'n.nid = f13.entity_id');
+  $query->leftJoin('field_data_title_field', 'f14', 'n.nid = f14.entity_id');
+  $query->fields('n', array(
+      'nid',
+      'title',
+    ));
+  $query->fields('f1', array(
+      'field_training_date_time_value',
+      'field_training_date_time_value2',
+    ));
+  $query->fields('f2', array(
+      'field_training_time_value',
+      'field_training_time_value2',
+    ));
+  $query->fields('f3', array(
+      'field_training_email_label_value',
+    ));
+  $query->fields('f4', array(
+      'field_tr_location_address_value',
+    ));
+  $query->fields('f5', array(
+      'field_training_contact_label_value',
+    ));
+  $query->fields('f6', array(
+      'field_tr_telephone_label_value',
+    ));
+  $query->fields('f7', array(
+      'field_tr_telephone_number_value',
+    ));
+  $query->fields('f8', array(
+      'field_tr_fax_number_value',
+    ));
+  $query->fields('f9', array(
+      'field_when_label_value',
+    ));
+  $query->fields('f10', array(
+      'field_tr_location_label_value',
+    ));
+  $query->fields('f11', array(
+      'field_training_email_email',
+    ));
+  $query->fields('f12', array(
+      'field_tr_fax_label_value',
+    ));
+  $query->fields('f13', array(
+      'field_tr_where_label_value',
+    ));
+  $query->fields('f14', array(
+      'title_field_value',
+    ));
+  $query->condition('n.type', 'training', '=');
+  $query->condition('n.nid', $nid, '=');
+  $query->condition('n.status', '1', '=');
+  $query->condition('f14.language', $lang, '=');
+  $result = $query->execute();
+  while ($record = $result->fetchAssoc()) {
+    $results[$record['nid']]['title'] = $record['title_field_value'];
+    $results[$record['nid']]['training_value'] = $record['field_training_date_time_value'];
+    $results[$record['nid']]['training_time'] = $record['field_training_time_value'];
+    $results[$record['nid']]['training_time2'] = $record['field_training_time_value2'];
+    $results[$record['nid']]['email_label'] = $record['field_training_email_label_value'];
+    $results[$record['nid']]['location_address'] = $record['field_tr_location_address_value'];
+    $results[$record['nid']]['contact_label'] = $record['field_training_contact_label_value'];
+    $results[$record['nid']]['telephone_label'] = $record['field_tr_telephone_label_value'];
+    $results[$record['nid']]['telephone_number'] = $record['field_tr_telephone_number_value'];
+    $results[$record['nid']]['fax_number'] = $record['field_tr_fax_number_value'];
+    $results[$record['nid']]['when_label'] = $record['field_when_label_value'];
+    $results[$record['nid']]['location_label'] = $record['field_tr_location_label_value'];
+    $results[$record['nid']]['fax_label'] = $record['field_tr_fax_label_value'];
+    $results[$record['nid']]['email'] = $record['field_training_email_email'];
+    $results[$record['nid']]['where_label'] = $record['field_tr_where_label_value'];
+  }
+  return $results;
+}

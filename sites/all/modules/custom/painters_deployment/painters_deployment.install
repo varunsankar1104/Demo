@@ -1,0 +1,2194 @@
+<?php
+
+/**
+ * @file
+ * Painter Deployment install file.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function painters_deployment_install() {
+  // adding config for pdf to open in same browser
+  variable_set('print_pdf_content_disposition', 0);
+  // Creating the landing page for advice and support
+  _create_landing_pages_advice_category_overview();
+  // creating the landing page for the planet possible page
+  _create_bean_blocks_palent_possible_page();
+  $nid = _create_landing_pages_planet_support_overview();
+  _assign_planet_possible_beanblocks($nid);
+
+  // Landing page creation for all advice page
+  _create_landing_pages_all_advice();
+
+  // Set weight of the painters_deployment Module to 1100
+  db_update('system')->fields(array(
+      'weight' => 1100,
+    ))->condition('name', 'painters_deployment', '=')->execute();
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function painters_deployment_uninstall() {}
+
+/**
+ * Implementation of hook_update_N
+ * Enable the Modules for Facte API search
+ */
+function painters_deployment_update_7100() {
+  // Enable the block_access module
+  $modules = array(
+    'search_api_db',
+    'featute_platform_color_consolidated_content',
+    'feature_platform_faceted_search_settings',
+  // Array of
+  );
+  // module
+  // names
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Implements hook_update().
+ */
+function painters_deployment_update_7101() {}
+
+/**
+ * Implementation of hook_update_N
+ * Enable the Modules for Facte API search
+ */
+function painters_deployment_update_7102() {
+  // Enable the block_access module
+  $modules = array(
+    'feature_painter_color_listing',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Executing functions
+ */
+function painters_deployment_update_7103() {
+  module_load_include('install', 'painters', 'painters');
+  color_disclaimer_create();
+  manage_testers_page();
+}
+
+/**
+ * Enable the Modules for Color Search
+ */
+function painters_deployment_update_7104() {
+  $modules = array(
+    'painters_context_search',
+    'painters_popular_content',
+    'feature_color_search',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Enable the Modules for Product listing
+ */
+function painters_deployment_update_7105() {
+  $modules = array(
+    'painters_product_listing',
+    'feature_painters_product_listing',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+
+  module_enable($modules, $enable_dependencies);
+}
+
+/*
+ * Color Tools feature revert
+ */
+function painters_deployment_update_7106() {
+  features_revert(array(
+      'feature_painters_color_tools',
+    ));
+}
+
+/**
+ * Promotional brands & carousel content type
+ */
+function painters_deployment_update_7107() {
+  $modules = array(
+    'feature_platform_carousel_content',
+    'painters_promotional_brands',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Enable print PDF modules.
+ */
+function painters_deployment_update_7108() {
+  $modules = array(
+    'print_pdf_dompdf',
+    'print_pdf',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Carousel Content feature revert
+ */
+function painters_deployment_update_7120() {
+  features_revert(array(
+      'feature_platform_carousel_content',
+      'feature_platform_brands',
+    ));
+}
+
+/**
+ * Carousel Content feature revert
+ */
+function painters_deployment_update_7121() {
+  features_revert(array(
+      'feature_platform_product_color_import',
+    ));
+  $modules = array(
+    'painters_product_catalog',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Enable product search and product catalogue related feature modules.
+ */
+function painters_deployment_update_7122() {
+  $modules = array(
+    'feature_product_catalogue',
+    'feature_product_catalogue_browse_product',
+    'feature_product_search',
+  // Array of module
+  );
+  // names
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Enable painters_google_tag_manager modules.
+ */
+function painters_deployment_update_7125() {
+  $modules = array(
+    'painters_google_tag_manager',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/*
+ * Color Tools feature revert
+ */
+function painters_deployment_update_7126() {
+  features_revert(array(
+      'feature_painters_color_tools',
+    ));
+}
+
+/**
+ * Updating GTM Container ID for painters.
+ */
+function painters_deployment_update_7127() {
+  variable_set('google_tag_container_id', 'GTM-53HP8G');
+}
+
+/**
+ * Enable painters article content modules.
+ */
+function painters_deployment_update_7142() {
+  $modules = array(
+    'feature_painters_article_content',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Creating static pages
+ */
+function painters_deployment_update_7143() {
+  create_static_pages();
+}
+
+/**
+ * PRODUCT CATALOGUE IMAGE AND CONTENT SECTION
+ */
+function painters_deployment_update_7145() {
+  module_load_include('install', 'painters_product_catalog', 'painters_product_catalog');
+  manage_product_catalogue();
+}
+
+/**
+ * Creating footer menus
+ */
+function painters_deployment_update_7146() {
+  create_footer_menus();
+}
+
+/**
+ * Implementation of hook_update_N
+ * Create the bean block for the Contact us address block
+ */
+function painters_deployment_update_7147() {
+  $bean = bean_create(array(
+      'type' => 'bean_block',
+    ));
+  $bean->label = 'Contact Us Address Block';
+  $bean->title = '';
+  $bean->uid = 1;
+  $bean->delta = 'contactus-address-block';
+  $bean->field_bean_body_text[LANGUAGE_NONE]['0']['value'] = '
+    <div class="contact-info vertical-bottom">
+		<h3>Address</h3>
+		<span class="contact-info__brand-name">Akzo Nobel</span><br>
+		<span>Decorative Coatings B.V.<br>Rijksstraatweg 31<br>2171 AJ Sassenheim</span>
+		<div class="block-divider">&nbsp;</div>
+		<h3>Call us</h3>
+		<span class="contact-info__phone">Telefoon:</span>
+		<span class="contact-info__phone-number" class="tel"><a href="tel:0164263396">0164263396</a></span><br>
+		<span class="contact-info__opening-hours">available from 9:00 till 16:00</span>
+		<div class="block-divider">&nbsp;</div>
+		<h3>Email us</h3>
+		<span><a href="mailto:info@sikkensl.nl">info@sikkens.nl</a></span>
+	</div>';
+  $bean->field_bean_body_text[LANGUAGE_NONE]['0']['format'] = 'full_html';
+  $bean->save();
+
+  $modules = array(
+    'painters_contact_us',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Creating landing page for advice and support
+ */
+function painters_deployment_update_7148() {
+  _create_landing_pages_advice_support_overview();
+}
+
+/**
+ * Saving EU COOKIE Settings & revert painters permissions feature
+ */
+function painters_deployment_update_7149() {
+  _painters_cookie_settings();
+  features_revert(array(
+      'feature_painters_permissions',
+    ));
+}
+
+/**
+ * Creating landing page for advice and support catehory pages
+ */
+function painters_deployment_update_7150() {
+  _create_landing_pages_advice_category_overview();
+}
+
+/**
+ * Creating landing page for advice and support catehory pages
+ */
+function painters_deployment_update_7151() {
+  // creating the landing page for the planet possible page
+  _create_bean_blocks_palent_possible_page();
+  $nid = _create_landing_pages_planet_support_overview();
+  _assign_planet_possible_beanblocks($nid);
+}
+
+/**
+ * Implementation of hook_update_N
+ */
+function painters_deployment_update_7152() {
+  _create_store_landing_page();
+}
+
+/**
+ * Enable painters training content type.
+ */
+function painters_deployment_update_7154() {
+  $modules = array(
+    'email',
+    'feature_painters_training',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Enable painters search features.
+ */
+function painters_deployment_update_7155() {
+  $modules = array(
+    'feature_painters_global_search_server_and_index',
+    'feature_painters_global_search_settings',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * revert features to support multilingual.
+ */
+function painters_deployment_update_7156() {
+  features_revert(array(
+      'feature_painters_color_tools',
+      'feature_painters_training',
+      'feature_platform_carousel_content',
+      'feature_platform_color_collection',
+      'feature_platform_brands',
+    ));
+}
+
+/**
+ * Implements update hook
+ */
+function painters_deployment_update_7157() {
+  variable_del('highlighted_product');
+  variable_del('new_article_block');
+  variable_del('store_promo_article_block');
+}
+
+/**
+ * Create Training bean blocks & revert training feature
+ */
+function painters_deployment_update_7158() {
+  // Create Bean Blocks for Training list page
+  _create_bean_blocks_training_overview_page();
+  features_revert(array(
+      'feature_painters_training',
+    ));
+}
+
+/**
+ * revert features
+ */
+function painters_deployment_update_7159() {
+  features_revert(array(
+      'feature_painters_color_tools',
+      'feature_painters_training',
+      'feature_platform_carousel_content',
+      'feature_platform_color_collection',
+      'feature_platform_brands',
+    ));
+}
+
+/**
+ * Implementation of hook_update_N
+ */
+function painters_deployment_update_7160() {
+  $modules = array(
+    'painters_stores',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+
+  // Create the store page bean blocks
+  _create_store_page_entity_blocks();
+}
+
+/**
+ * Create Advice and Support - Label Block
+ */
+function painters_deployment_update_7161() {
+  // Create Bean Blocks for Advice and Support - Label Block
+  _create_bean_blocks_adive_support_label();
+}
+
+/**
+ * Creating error pages
+ */
+function painters_deployment_update_7162() {
+  create_404_error_page();
+}
+
+/**
+ * Implementation of hook_update_N
+ * Enable Manual crop contrib module
+ */
+function painters_deployment_update_7163() {
+  $modules = array(
+    'manualcrop',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Enable SEO related modules
+ */
+function painters_deployment_update_7164() {
+  $modules = array(
+    'metatag',
+    'metatag_context',
+    'metatag_facebook',
+    'metatag_google_plus',
+    'metatag_panels',
+    'metatag_twitter_cards',
+    'metatag_opengraph',
+    'metatag_devel',
+    'lightning_metatags',
+    'xmlsitemap',
+    'xmlsitemap_i18n',
+    'xmlsitemap_menu',
+    'xmlsitemap_node',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Enable training module
+ */
+function painters_deployment_update_7165() {
+  $modules = array(
+    'painters_training',
+  );
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Enable Metatags Configuration feature
+ */
+function painters_deployment_update_7166() {
+  $modules = array(
+    'feature_painters_seo',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Set weight of the painters_deployment Module to 1100
+ */
+function painters_deployment_update_7167() {
+  db_update('system')->fields(array(
+      'weight' => 1100,
+    ))->condition('name', 'painters_deployment', '=')->execute();
+
+  // Create the entity blocks for store page
+  _create_store_page_entity_blocks();
+
+  $nid = _create_store_landing_page();
+
+  $node = node_load($nid);
+
+  $display = $node->panelizer['page_manager']->display;
+
+  if (!is_numeric($display->did)) {
+    $new_display = panels_save_display($display);
+    $node->panelizer['page_manager']->display = $new_display;
+    $node->panelizer['page_manager']->display_is_modified = TRUE;
+    node_save($node);
+  }
+
+  $display = panels_load_display($node->panelizer['page_manager']->display->did);
+
+  $region = 'contentmain';
+
+  $display->content = array();
+  $display->panels[$region] = array();
+
+  // Add a new pane
+  $new_pane = panels_new_pane('block', 'bean-store-page-top-block', TRUE);
+  $new_pane->panel = $region;
+  $display->panels[$region][] = $new_pane->pid;
+  $display->content[$new_pane->pid] = $new_pane;
+
+  panels_save_display($display);
+
+  // Save the node after the panelizer update
+  $node = node_load($node->nid, NULL, TRUE);
+  $node->panelizer['page_manager']->display_is_modified = TRUE;
+  node_save($node);
+}
+
+/**
+ * Disabling update manager module
+ */
+function painters_deployment_update_7168() {
+  if (module_exists('update')) {
+    module_disable(array(
+        'update',
+      ));
+  }
+}
+
+/**
+ * Enable FAQ feature & create required bean blocks
+ */
+function painters_deployment_update_7169() {
+  // Enable FAQ module
+  $modules = array(
+    'feature_painters_faq',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+  // Create Bean Blocks
+  painters_faq_blocks();
+}
+
+/**
+ * Set weight of the painters_deployment Module to 1100
+ */
+function painters_deployment_update_7170() {
+
+  // Create the entity blocks for store page
+  _create_store_page_entity_blocks();
+
+  $nid = _create_store_landing_page();
+
+  $node = node_load($nid);
+
+  $display = $node->panelizer['page_manager']->display;
+
+  if (!is_numeric($display->did)) {
+    $new_display = panels_save_display($display);
+    $node->panelizer['page_manager']->display = $new_display;
+    $node->panelizer['page_manager']->display_is_modified = TRUE;
+    node_save($node);
+  }
+
+  $display = panels_load_display($node->panelizer['page_manager']->display->did);
+
+  $region = 'contentmain';
+
+  $display->content = array();
+  $display->panels[$region] = array();
+
+  // Add a new pane
+  $new_pane = panels_new_pane('block', 'bean-store-page-top-block', TRUE);
+  $new_pane->panel = $region;
+  $display->panels[$region][] = $new_pane->pid;
+  $display->content[$new_pane->pid] = $new_pane;
+
+  panels_save_display($display);
+
+  $new_pane = panels_new_pane('block', 'bean-store-page-bottom-block', TRUE);
+  $new_pane->panel = $region;
+  $display->panels[$region][] = $new_pane->pid;
+  $display->content[$new_pane->pid] = $new_pane;
+
+  panels_save_display($display);
+
+  // Save the node after the panelizer update
+  $node = node_load($node->nid, NULL, TRUE);
+  $node->panelizer['page_manager']->display_is_modified = TRUE;
+  node_save($node);
+}
+
+/**
+ * FAQ Content type feature revert & blocks update
+ */
+function painters_deployment_update_7171() {
+  features_revert(array(
+      'feature_painters_color_tools',
+    ));
+  painters_faq_bean_block_update();
+}
+
+/**
+ * Create FAQ landing page
+ */
+function painters_deployment_update_7172() {
+  _create_landing_page_faq_overview();
+}
+
+/**
+ * Create all advice landing page
+ */
+function painters_deployment_update_7173() {
+  _create_landing_pages_all_advice();
+}
+
+/**
+ * Enable Datasheets feature
+ */
+function painters_deployment_update_7174() {
+  $modules = array(
+    'feature_painters_datasheets',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Create Training landing page
+ */
+function painters_deployment_update_7175() {
+  // Create Bean Blocks for Training list page
+  features_revert(array(
+      'feature_painters_training',
+    ));
+  _create_landing_page_training_overview();
+}
+
+/**
+ * Enable feature product listing matrix
+ */
+function painters_deployment_update_7176() {
+  $modules = array(
+    'feature_painters_product_listing_matrix',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Enable platform SM integration & i18n integration
+ */
+function painters_deployment_update_7177() {
+  $modules = array(
+    'platform_sm_integration',
+    'platform_sm_integration_i18n',
+  // Array of module names
+  );
+  foreach ($modules as $module) {
+    if (module_exists($module)) {
+      module_disable(array(
+          $module,
+        ));
+    }
+  }
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Revert features
+ */
+function painters_deployment_update_7178() {
+  features_revert(array(
+      'feature_product_search',
+      'feature_painters_product_listing',
+    ));
+}
+
+/**
+ * Create additional field in landing page content type to handle page type
+ */
+function painters_deployment_update_7179() {
+  $field_name = 'field_dlr_sitemap_value';
+  // Make sure the field doesn't already exist.
+  if (!field_info_field($field_name)) {
+    // Create the field.
+    $field = array(
+      'field_name' => $field_name,
+      'type' => 'text',
+      'settings' => array(
+        'max_length' => 255,
+      ),
+    );
+    field_create_field($field);
+
+    // Create the instance.
+    $instance = array(
+      'field_name' => $field_name,
+      'entity_type' => 'node',
+      'bundle' => 'panopoly_landing_page',
+      'label' => 'SiteMap Value',
+      'description' => '<p> Provide the Painters Sitemap value here, this value used to for Page wise Datalayer Implementation.</p>
+<p> Sitemap Values</p>
+<p> 30 - Products overview(Product catlog)  page</p>
+<p> 31 - Sustainability overview page</p>
+<p> 40.00 - Advice & Support overview page</p>
+<p> 40.01 - Advice & Support article page</p>
+<p> 41 - FAQ overview page</p>
+<p> 42 - Knowledge Center page</p>
+<p> 42.01 - Knowledge center Category</p>
+<p> 42.01.01 - Knowledge center article</p>
+<p> 43 - Training overview page</p>
+<p> 50.00 - Stores page</p>
+<p> 60.00 - Workspace overview page</p>',
+      'required' => FALSE,
+    );
+    field_create_instance($instance);
+
+    watchdog('landing_pages', t('!field_name was added successfully.', array(
+          '!field_name' => $field_name,
+        )));
+  }
+  else {
+    watchdog('landing_pages', t('!field_name already exists.', array(
+          '!field_name' => $field_name,
+        )));
+  }
+}
+
+/**
+ * Enable painters_filter_matrix
+ */
+function painters_deployment_update_7180() {
+  $modules = array(
+    'painters_filter_matrix',
+  // Array of module names
+  );
+  foreach ($modules as $module) {
+    if (module_exists($module)) {
+      module_disable(array(
+          $module,
+        ));
+    }
+  }
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Enable CLoud file module &
+ * Revert features to update Rackspace storage option for image fields
+ */
+function painters_deployment_update_7181() {
+  $modules = array(
+    'cloud_files',
+  // Array of module names
+  );
+  foreach ($modules as $module) {
+    if (module_exists($module)) {
+      module_disable(array(
+          $module,
+        ));
+    }
+  }
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+
+  features_revert(array(
+      'feature_painters_article_content',
+      'feature_painters_color_tools',
+      'feature_platform_brands',
+      'feature_platform_carousel_content',
+      'feature_platform_color_collection',
+      'feature_platform_content_types',
+      'feature_platform_product_color_import',
+    ));
+}
+
+/**
+ * Revert features to update deafult image file syatem storage option to "rcf" i.e cloud files
+ */
+function painters_deployment_update_7182() {
+  features_revert(array(
+      'feature_painters_permissions',
+    ));
+}
+
+/**
+ * Revert features
+ */
+function painters_deployment_update_7183() {
+  features_revert(array(
+      'feature_painters_product_listing_matrix',
+    ));
+}
+
+/**
+ * Revert features
+ */
+function painters_deployment_update_7184() {
+  features_revert(array(
+      'feature_painter_color_listing',
+    ));
+}
+
+/**
+ * Revert features
+ */
+function painters_deployment_update_7185() {
+  features_revert(array(
+      'feature_painters_permissions',
+    ));
+}
+
+/**
+ * Hook_udpate_N : Diabling unused modules in Production
+ */
+function painters_deployment_update_7186() {
+  $modules = array(
+    'coder_review',
+    'coder',
+    'comment',
+    'dblog',
+    'devel',
+    'disqus',
+    'googleanalytics',
+    'ga_stats',
+  );
+  foreach ($modules as $module) {
+    if (module_exists($module)) {
+      module_disable(array(
+          $module,
+        ));
+    }
+  }
+}
+
+/**
+ * Hook_udpate_N : revert feature_painters_permissions
+ */
+function painters_deployment_update_7187() {
+  features_revert(array(
+      'feature_painters_permissions',
+    ));
+}
+
+/**
+ * Hook_udpate_N : revert feature_painter_color_listing
+ */
+function painters_deployment_update_7188() {
+  features_revert(array(
+      'feature_painter_color_listing',
+    ));
+}
+
+/**
+ * Enable Navbar module and Disable admin menu
+ */
+function painters_deployment_update_7189() {
+  if (module_exists('admin_menu')) {
+    module_disable(array(
+        'admin_menu',
+      ));
+  }
+
+  // Enable Navbar module
+  $modules = array(
+    'navbar',
+  );
+  module_enable($modules, TRUE);
+}
+
+/**
+ * Create Advice and Support Category - Label Block
+ */
+function painters_deployment_update_7190() {
+  // Create Bean Blocks for Advice and Support Category - Label Block
+  /* _create_bean_blocks_advice_support_category_label(); */
+}
+
+/**
+ * Enable Admin menu and disable navbar as navbar is conflicting with Admin themes - Temporary fix
+ */
+function painters_deployment_update_7191() {
+  if (module_exists('navbar')) {
+    module_disable(array(
+        'navbar',
+      ));
+  }
+  module_enable(array(
+      'admin_menu',
+    ), TRUE);
+}
+
+/**
+ * Enable print PDF modules.
+ */
+function painters_deployment_update_7192() {
+  $modules = array(
+    'painters_my_workspace',
+  // Array of module names
+  );
+  foreach ($modules as $module) {
+    if (module_exists($module)) {
+      module_disable(array(
+          $module,
+        ));
+    }
+  }
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Create Workspace help landing page
+ */
+function painters_deployment_update_7193() {
+  _create_landing_page_workspace_help();
+}
+
+/**
+ * Enable platform spaces.
+ */
+function painters_deployment_update_7194() {
+  $modules = array(
+    'platform_sm_spaces',
+  // Array of module names
+  );
+  foreach ($modules as $module) {
+    if (module_exists($module)) {
+      module_disable(array(
+          $module,
+        ));
+    }
+  }
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Enable platform sm user integration.
+ */
+function painters_deployment_update_7195() {
+  _create_landing_pages_delete_user_account_success();
+  $modules = array(
+    'platform_user_integration',
+  // Array of module names
+  );
+  foreach ($modules as $module) {
+    if (module_exists($module)) {
+      module_disable(array(
+          $module,
+        ));
+    }
+  }
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  $enable_modules = array(
+    'platform_sm_user_integration',
+    'gigya',
+    'gigya_default_token',
+  );
+  module_enable($enable_modules, $enable_dependencies);
+}
+
+/**
+ * Bean block for myworkspace help page label.
+ */
+function painters_deployment_update_7196() {
+  _create_bean_blocks_workspace_help_page();
+}
+
+/**
+ * Implementation of hook_update_N
+ * Enable the painters workspace feature
+ */
+function painters_deployment_update_7197() {
+  $modules = array(
+    'feature_painters_workspace',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Implementation of hook_update_N
+ * revert the painters workspace feature
+ */
+function painters_deployment_update_7198() {
+  features_revert(array(
+      'feature_platform_product_color_import',
+    ));
+}
+
+/**
+ * Implementation of hook_update_N
+ * revert the product catalog features
+ */
+function painters_deployment_update_7199() {
+  features_revert(array(
+      'feature_product_catalogue',
+    ));
+}
+
+/**
+ * Enabling Painters MVP modules
+ * revert the product catalog features
+ */
+function painters_deployment_update_7200() {
+  module_enable(array(
+      'painters_my_workspace',
+      'platform_sm_spaces',
+      'platform_sm_user_integration',
+    ), TRUE);
+  if (module_exists('platform_user_integration')) {
+    module_disable(array(
+        'platform_user_integration',
+      ));
+  }
+}
+
+/**
+ * Delete color picker field & make it select field
+ * Revert feature feature_platform_brands
+ */
+function painters_deployment_update_7201() {
+  if ($instance = field_info_instance('node', 'field_br_color_picker', 'brand')) {
+    field_delete_instance($instance, TRUE);
+    field_purge_batch(1);
+  }
+  features_revert(array(
+      'feature_platform_brands',
+    ));
+}
+
+/**
+ * Alter bean block author from anonymous to admin
+ */
+function painters_deployment_update_7202() {
+  alter_beanblock_author();
+}
+
+/**
+ * Uninstall drupal search module & use custom search
+ */
+function painters_deployment_update_7203() {
+  module_disable(array(
+      'search',
+    ));
+  features_revert(array(
+      'feature_painters_global_search_settings',
+    ));
+}
+
+/**
+ * UI Performance: Enable Advagg mod & configure
+ */
+function painters_deployment_update_7204() {
+  $modules = array(
+    'advagg',
+    'advagg_bundler',
+    'advagg_css_compress',
+    'advagg_js_compress',
+    'advagg_validator',
+    'advagg_mod',
+  // Array of
+  );
+  // module
+  // names
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+
+  module_enable($modules, $enable_dependencies);
+
+  // Set configuration variables
+  $variables = array(
+    'preprocess_css' => 1,
+    'preprocess_js' => 1,
+    'advagg_mod_js_preprocess' => 1,
+    'advagg_mod_css_preprocess' => 1,
+    'advagg_js_compressor' => 0,
+    'advagg_mod_js_footer' => 2,
+  );
+  // 'advagg_mod_js_defer' => 2,
+
+  foreach ($variables as $index => $value) {
+    variable_set($index, $value);
+  }
+}
+
+/**
+ * Set path alias for product-compare : products/compare
+ */
+function painters_deployment_update_7205() {
+  $path = array();
+  $path['source'] = 'product-compare';
+  $path['alias'] = 'products/compare';
+  path_save($path);
+}
+
+/*
+ * Disable and uninstall platform level content types
+ *
+ */
+function painters_deployment_update_7206() {
+  $module_disable = array(
+    'featute_platform_color_consolidated_content',
+    'feature_platform_product_color_import',
+    'feature_platform_color_collection',
+    'feature_platform_carousel_content',
+    'feature_platform_brands',
+    'feature_platform_color_hue_terms',
+    'feature_platform_content_types',
+  );
+  module_disable($module_disable);
+  drupal_uninstall_modules($module_disable);
+  module_enable(array(
+      'feature_painters_faq',
+      'feature_painters_color_tools',
+      'feature_painters_color_tools',
+    ));
+  $content_type = array(
+    'article',
+    'brand',
+    'carousel_content',
+    'color_collection',
+    'panopoly_page',
+    'group',
+    'platform_product',
+    'product_package',
+    'color',
+    'color_consolidated_content',
+  );
+  foreach ($content_type as $contents) {
+    node_type_delete($contents);
+  }
+}
+
+/*
+ * Disable and uninstall platform level content types
+ *
+ */
+function painters_deployment_update_7207() {
+  $module_disable = array(
+    'featute_platform_color_consolidated_content',
+    'feature_platform_product_color_import',
+    'feature_platform_color_collection',
+    'feature_platform_carousel_content',
+    'feature_platform_brands',
+    'feature_platform_color_hue_terms',
+    'feature_platform_content_types',
+  );
+  module_disable($module_disable);
+  drupal_uninstall_modules($module_disable);
+  module_enable(array(
+      'feature_painters_faq',
+      'feature_painters_color_tools',
+      'feature_painters_color_tools',
+      'feature_painters_training',
+    ));
+}
+
+/*
+ * Delete the platform level content types
+ *
+ */
+function painters_deployment_update_7208() {
+  $content_type = array(
+    'article',
+    'brand',
+    'carousel_content',
+    'color_collection',
+    'panopoly_page',
+    'group',
+    'platform_product',
+    'product_package',
+    'color',
+    'color_consolidated_content',
+  );
+  foreach ($content_type as $contents) {
+    node_type_delete($contents);
+  }
+}
+
+/**
+ */
+function painters_deployment_update_7209() {
+  $content_type = array(
+    'article',
+    'brand',
+    'carousel_content',
+    'color_collection',
+    'panopoly_page',
+    'group',
+    'platform_product',
+    'product_package',
+    'color',
+    'color_consolidated_content',
+  );
+  foreach ($content_type as $contents) {
+    node_type_delete($contents);
+  }
+}
+
+/**
+ * Enable color tools module
+ */
+function painters_deployment_update_7210() {
+  $modules = array(
+    'painters_color_tools',
+  );
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/*
+ * generate dynamic filters
+ *
+ */
+function painters_deployment_update_7211() {
+  $default_filters = _get_default_product_filters();
+  variable_del('dynamic_product_filters_values');
+  variable_set('dynamic_product_filters_values', $default_filters);
+  features_revert(array(
+      'feature_painters_product_listing_matrix',
+      'feature_painters_gpp_content_types',
+    ));
+}
+
+/*
+ * generate workspace suggestions folders
+ *
+ */
+function painters_deployment_update_7212() {
+  $vocabulary = taxonomy_vocabulary_machine_name_load('workspace_job_name_suggestions');
+  $vid = $vocabulary->vid;
+  $language = 'und';
+  $default_folders = array(
+    'Kitchen',
+    'Bathroom',
+    'Living room',
+  );
+  foreach ($default_folders as $folder_name) {
+    _get_tid_by_name($folder_name, $vid, $parent = NULL, $language);
+  }
+}
+
+/*
+ * revert feature_painters_gpp_content_types
+ *
+ */
+function painters_deployment_update_7213() {
+  features_revert(array(
+      'feature_painters_product_listing_matrix',
+      'feature_painters_gpp_content_types',
+    ));
+}
+
+/*
+ * revert feature_painters_gpp_content_types
+ *
+ */
+function painters_deployment_update_7214() {
+  if ($instance = field_info_instance('node', 'field_br_color_picker', 'brand')) {
+    field_delete_instance($instance, TRUE);
+    field_purge_batch(1);
+  }
+  features_revert(array(
+      'feature_painters_gpp_content_types',
+    ));
+}
+
+/*
+ * revert feature_painters_gpp_content_types & feature_painters_product_listing_matrix
+ *
+ */
+function painters_deployment_update_7215() {
+  features_revert(array(
+      'feature_painters_gpp_content_types',
+      'feature_painters_product_listing_matrix',
+    ));
+}
+
+/*
+ * revert feature_painters_gpp_content_types
+ *
+ */
+function painters_deployment_update_7216() {
+  features_revert(array(
+      'feature_painters_gpp_content_types',
+    ));
+}
+
+/**
+ * Disable and uninstall unused contrib modules
+ */
+function painters_deployment_update_7217() {
+  $contrib_modules = array(
+    'comment',
+    'contact',
+    'dblog',
+    'calendar',
+    'ga_staus',
+    'assemble',
+    'advanced_help',
+    'breakpoints',
+    'help_example',
+    'views_slideshow',
+    'views_slideshow_cycle',
+    'views_ui',
+    'background_process',
+    'progress',
+    'manage_multisite',
+    'delete_all',
+    'devel',
+    'multiform',
+    'picture',
+    'radioactivity',
+    'jcarousel',
+    'waypoints',
+    'better_exposed_filters',
+    'mefibs',
+    'views_infinite_scroll',
+    'views_load_more',
+  );
+  foreach ($contrib_modules as $modules) {
+    module_disable(array(
+        $modules,
+      ));
+    drupal_uninstall_modules(array(
+        $modules,
+      ));
+  }
+}
+
+/**
+ * Disable and uninstall unused modules
+ */
+function painters_deployment_update_7218() {
+  $contrib_modules = array(
+    'feature_painter_color_listing',
+    'feature_painters_product_listing',
+  );
+  foreach ($contrib_modules as $modules) {
+    module_disable(array(
+        $modules,
+      ));
+    drupal_uninstall_modules(array(
+        $modules,
+      ));
+  }
+}
+
+/**
+ * Set path alias for product-datasheet/search : products/data-sheet/search
+ */
+function painters_deployment_update_7219() {
+  $path = array();
+  $path['source'] = 'data-sheet/search';
+  $path['alias'] = 'products/data-sheet/search';
+  path_save($path);
+}
+
+/**
+ * Delete menu-footer-bottom menus : PD-1919
+ */
+function painters_deployment_update_7220() {
+  menu_delete('menu-footer-bottom');
+  features_revert(array(
+      'feature_footer_brand_icons',
+    ));
+}
+
+/*
+ * revert feature_painters_gpp_content_types
+ *
+ */
+function painters_deployment_update_7221() {
+  if ($instance = field_info_instance('node', 'field_br_color_picker', 'brand')) {
+    field_delete_instance($instance, TRUE);
+    field_purge_batch(1);
+  }
+  features_revert(array(
+      'feature_painters_gpp_content_types',
+    ));
+}
+
+/*
+ * revert feature_painters_gpp_content_types
+ *
+ */
+function painters_deployment_update_7222() {
+  if ($instance = field_info_instance('node', 'field_prod_eco_image', 'platform_product')) {
+    field_delete_instance($instance, TRUE);
+    field_purge_batch(1);
+  }
+  if ($group = field_group_load_field_group('group_prod_eco_images_section', 'node', 'platform_product', 'form')) {
+    ctools_include('export');
+    field_group_group_export_delete($group, FALSE);
+  }
+  features_revert(array(
+      'feature_painters_gpp_content_types',
+    ));
+}
+
+/*
+ * Turn on: JS & CSS Aggregation
+ */
+function painters_deployment_update_7223() {
+  variable_set('preprocess_css', 1);
+  variable_set('preprocess_js', 1);
+}
+
+/**
+ * Disable and uninstall unused modules:advagg_validator
+ */
+function painters_deployment_update_7224() {
+  module_disable(array(
+      'advagg_validator',
+    ));
+  drupal_uninstall_modules(array(
+      'advagg_validator',
+    ));
+}
+
+/*
+ * Enable page cache
+ */
+function painters_deployment_update_7225() {
+  features_revert(array(
+      'feature_painters_permissions',
+    ));
+}
+
+/*
+ * delete tables from DB as GPP content type feature not getting reverted
+ * Revert feature_painters_gpp_content_types feature
+ */
+function painters_deployment_update_7226() {
+  // Tables to be deleted
+  // Delete field table & its revision tables
+  $tables = array(
+    'field_data_field_prod_eco_icons',
+    'field_revision_field_prod_eco_icons',
+    'field_data_field_prod_eco_icon_description',
+    'field_revision_field_prod_eco_icon_description',
+    'field_data_field_prod_eco_icon_text',
+    'field_revision_field_prod_eco_icon_text',
+    'field_data_field_prod_eco_icon_url',
+    'field_revision_field_prod_eco_icon_url',
+    'field_data_field_sitemap_value',
+    'field_revision_field_sitemap_value',
+  );
+  foreach ($tables as $table) {
+    db_drop_table($table);
+  }
+  // Reverting feature after deleting fields
+  features_revert(array(
+      'feature_painters_gpp_content_types',
+    ));
+}
+
+/*
+ * Configuring the CRON jobs and the required contrib modules and features
+ *
+ */
+function painters_deployment_update_7227() {
+  $module_disable = array(
+    'ultimate_cron',
+  );
+  module_disable($module_disable);
+  drupal_uninstall_modules($module_disable);
+  module_enable(array(
+      'elysia_cron',
+      'feature_painters_cron',
+    ));
+}
+
+/*
+ * Enable cacheexclude module
+ *
+ */
+function painters_deployment_update_7228() {
+  module_enable(array(
+      'cacheexclude',
+    ));
+}
+
+/*
+ * Implements hook update_N to update the existing menu link path under the product parent item.
+ *
+ */
+function painters_deployment_update_7229() {
+
+  // Update the link path for the products menu child item
+  $mlids = db_query("SELECT mlid FROM {menu_links} WHERE plid = :plid AND menu_name = :menu", array(
+      ':plid' => 1623,
+      ':menu' => 'main-menu',
+    ))->fetchCol();
+  if ($mlids) {
+    foreach ($mlids as $mlid) {
+      if ($menu_link = menu_link_load($mlid)) {
+
+        // Menu link change for Our Products
+        if ($menu_link['mlid'] == 42967) {
+          $menu_link['link_path'] = 'products-listing';
+        }
+        // Menu link change for Product info
+        if ($menu_link['mlid'] == 43039) {
+          $menu_link['link_path'] = 'products';
+        }
+
+        // Save the menu link.
+        if (!menu_link_save($menu_link)) {
+          watchdog('product_menu_item', t('!menu_link has been updated successfully.', array(
+                '!menu_link' => $menu_link['mlid'],
+              )));
+        }
+      }
+    }
+  }
+
+  // Create the menu link datasheets under the product parent item.
+  $item = array(
+    'link_title' => 'Datasheets',
+    'link_path' => 'products/datasheets',
+    'menu_name' => 'main-menu',
+    'weight' => -48,
+    'plid' => 1623,
+  );
+  menu_link_save($item);
+  menu_cache_clear_all();
+}
+
+/*
+ * Revert the FAQ feature to enable the meta tags and canocial URLS for custom pages
+ *
+ */
+function painters_deployment_update_7230() {
+  features_revert(array(
+      'feature_painters_faq',
+    ));
+}
+
+function painters_deployment_update_7231() {
+  // Load all the beans block.
+  $beans = bean_get_all_beans();
+  foreach ($beans as $bean) {
+    if ($bean->delta == 'contact-us-address-block') {
+      // Delete the bean block which have delta value contact-us-address-block.
+      bean_delete($bean);
+      // Create the contact us bean block programatcally with delta value contactus-address-block.
+      $bean = bean_create(array(
+          'type' => 'bean_block',
+        ));
+      $bean->label = 'Contact Us Address Block';
+      $bean->title = '';
+      $bean->uid = 1;
+      $bean->delta = 'contactus-address-block';
+      $bean->field_bean_body_text[LANGUAGE_NONE]['0']['value'] = '
+    <div class="contact-info vertical-bottom">
+		<h3>Address</h3>
+		<span class="contact-info__brand-name">Akzo Nobel</span><br>
+		<span>Decorative Coatings B.V.<br>Rijksstraatweg 31<br>2171 AJ Sassenheim</span>
+		<div class="block-divider">&nbsp;</div>
+		<h3>Call us</h3>
+		<span class="contact-info__phone">Telefoon:</span>
+		<span class="contact-info__phone-number" class="tel"><a href="tel:0164263396">0164263396</a></span><br>
+		<span class="contact-info__opening-hours">available from 9:00 till 16:00</span>
+		<div class="block-divider">&nbsp;</div>
+		<h3>Email us</h3>
+		<span><a href="mailto:info@sikkensl.nl">info@sikkens.nl</a></span>
+	</div>';
+      $bean->field_bean_body_text[LANGUAGE_NONE]['0']['format'] = 'full_html';
+      $bean->save();
+    }
+  }
+}
+
+/*
+ * Delete find-a-store english path & add language independent path
+ *
+ */
+function painters_deployment_update_7232() {
+  $old_store_path = path_load(array(
+      'alias' => 'find-a-store',
+    ));
+  if (isset($old_store_path['pid'])) {
+    path_delete($old_store_path['pid']);
+    $path = array();
+    $path['source'] = $old_store_path['source'];
+    $path['alias'] = 'find-a-store';
+    $path['language'] = 'und';
+    path_save($path);
+  }
+}
+
+/*
+ * Revert features
+ *
+ */
+function painters_deployment_update_7233() {
+  // Enable the block_access module
+  $modules = array(
+    'feature_painters_solr',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+  features_revert(array(
+      'feature_painters_product_listing_matrix',
+    ));
+}
+
+/**
+ * Update hook to disable the non solr modules
+ */
+function painters_deployment_update_7234() {
+  // Disable the block_access module
+  $modules_disable = array(
+    'feature_color_search',
+    'painters_color_listing_europe',
+    'painters_color_listing_asia',
+    'painters_filter_matrix',
+    'painters_product_listing',
+    'painters_popular_content',
+    'painters_context_search',
+  // Array
+  );
+  // of
+  // module
+  // names
+  $enable_dependencies = TRUE;
+  module_disable($modules_disable, $enable_dependencies);
+}
+
+/**
+ * Remove the package content type
+ */
+function painters_deployment_update_7236() {
+  node_type_delete('product_package');
+  features_revert(array(
+      'feature_painters_gpp_content_types',
+    ));
+}
+
+/**
+ * Revert workspace_job_name_suggestions terms
+ */
+function painters_deployment_update_7237() {
+  features_revert(array(
+      'feature_painters_workspace',
+    ));
+}
+
+/**
+ * Revert Global search features
+ */
+function painters_deployment_update_7238() {
+  features_revert(array(
+      'feature_painters_global_search_server_and_index',
+      'feature_painters_global_search_settings',
+    ));
+}
+
+/**
+ * Revert Content type
+ */
+function painters_deployment_update_7239() {
+  features_revert(array(
+      'feature_painters_gpp_content_types',
+    ));
+}
+
+/**
+ * hook_update impelementation for the session cache API to make storage method to the CACHE DB CORE.
+ */
+function painters_deployment_update_7240() {
+  variable_set('session_cache_storage_method', SESSION_CACHE_STORAGE_DB_CORE);
+}
+
+/**
+ * Revert Permissions
+ */
+function painters_deployment_update_7241() {
+  features_revert(array(
+      'feature_painters_permissions',
+    ));
+}
+
+/*
+ * Delete delete-user-account-success english path & add language independent path
+ *
+ */
+function painters_deployment_update_7242() {
+  $old_account_path = path_load(array(
+      'alias' => 'delete-user-account-success',
+    ));
+  if (isset($old_account_path['pid'])) {
+    path_delete($old_account_path['pid']);
+    $path = array();
+    $path['source'] = $old_account_path['source'];
+    $path['alias'] = 'delete/account/success';
+    $path['language'] = 'und';
+    path_save($path);
+  }
+}
+
+/*
+ * Delete color-disclaimer english path & add language independent path
+ *
+ */
+function painters_deployment_update_7243() {
+  $old_path = path_load(array(
+      'alias' => 'color-disclaimer',
+    ));
+  if (isset($old_path['pid'])) {
+    path_delete($old_path['pid']);
+    $path = array();
+    $path['source'] = $old_path['source'];
+    $path['alias'] = 'colour-disclaimer';
+    $path['language'] = 'und';
+    path_save($path);
+  }
+}
+
+/**
+ * Revert features & enable Hreflanguage
+ */
+function painters_deployment_update_7244() {
+  features_revert(array(
+      'feature_platform_workbench',
+    ));
+  // Enable the painters_metatag_hreflang module
+  $modules = array(
+    'painters_metatag_hreflang',
+  // Array of module names
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/*
+ * Disabling unused modules on prod environments
+ *
+ */
+function painters_deployment_update_7245() {
+  disable_unused_modules();
+}
+
+/**
+ * Revert Content type
+ */
+function painters_deployment_update_7246() {
+  features_revert(array(
+      'feature_painters_permissions',
+    ));
+}
+
+/**
+ * Disable and uninstall painters_popular_content module
+ */
+function painters_deployment_update_7247() {
+  $modules = array(
+    'painters_popular_content',
+  );
+  foreach ($modules as $module) {
+    if (module_exists($module)) {
+      module_disable(array(
+          $module,
+        ));
+      drupal_uninstall_modules(array(
+          $modules,
+        ));
+    }
+  }
+}
+
+/**
+ * Creating second layer privacy policy page pages
+ */
+function painters_deployment_update_7248() {
+  create_second_layer_privacy_policy();
+}
+
+/*
+ * Revert feature feature_product_catalogue
+ */
+function painters_deployment_update_7249() {
+  features_revert(array(
+      'feature_product_catalogue',
+      'feature_product_catalogue_browse_product',
+    ));
+}
+
+/*
+ * Revert feature feature_product_catalogue
+ */
+function painters_deployment_update_7250() {
+  features_revert(array(
+      'feature_painters_article_content',
+    ));
+}
+
+/*
+ * Revert feature feature_painters_gpp_content_types
+ */
+function painters_deployment_update_7251() {
+  features_revert(array(
+      'feature_painters_gpp_content_types',
+    ));
+}
+
+/*
+ * Revert feature feature_painters_gpp_content_types
+ */
+function painters_deployment_update_7252() {
+  features_revert(array(
+      'feature_painters_article_content',
+    ));
+}
+
+function painters_deployment_update_7253() {
+  // Enable modules
+  $modules = array(
+    'robotstxt',
+  );
+  // Whether or not to enable dependant modules
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}
+
+/**
+ * Disabling & Enable modules
+ */
+function painters_deployment_update_7254() {
+  // Disable modules
+  if (module_exists('painters_metatag_hreflang')) {
+    module_disable(array(
+        'painters_metatag_hreflang',
+      ));
+  }
+}
+
+/*
+ * Revert feature feature_painters_training
+ */
+function painters_deployment_update_7255() {
+  features_revert(array(
+      'feature_painters_training',
+    ));
+}
+
+/*
+ * Revert feature feature_painters_seo
+ */
+function painters_deployment_update_7256() {
+  features_revert(array(
+      'feature_painters_seo',
+    ));
+}
+
+/*
+ * Revert feature feature_product_search
+ */
+function painters_deployment_update_7257() {
+  features_revert(array(
+      'feature_product_search',
+    ));
+}
+
+/*
+ * Revert feature feature_painters_gpp_content_types
+ */
+function painters_deployment_update_7258() {
+  features_revert(array(
+      'feature_painters_gpp_content_types',
+    ));
+}
+
+/*
+ * Revert feature feature_product_catalogue
+ */
+function painters_deployment_update_7260() {
+  features_revert(array(
+      'feature_product_catalogue',
+    ));
+}
+
+/*
+ * Revert feature feature_painters_article_content
+ */
+function painters_deployment_update_7261() {
+  features_revert(array(
+      'feature_painters_article_content',
+    ));
+}
+
+/*
+ * Revert feature feature_painters_article_content
+ */
+function painters_deployment_update_7262() {
+  features_revert(array(
+      'feature_painters_article_content',
+    ));
+}
+
+/**
+ * Revert feature feature_painters_permissions
+ */
+function painters_deployment_update_7263() {
+  features_revert(array(
+      'feature_painters_permissions',
+    ));
+}
+
+function painters_deployment_update_7264() {
+  features_revert(array(
+      'feature_painters_gpp_content_types',
+      'feature_painters_product_listing_matrix',
+    ));
+}
+
+/**
+ * Revert feature_painters_product_listing_matrix
+ */
+function painters_deployment_update_7265() {
+  features_revert(array(
+      'feature_painters_product_listing_matrix',
+    ));
+}
+
+/**
+ * Remove underscores from product listing URL
+ */
+function painters_deployment_update_7266() {
+  // Get variable
+  $filters_data = variable_get('dynamic_product_filters_values');
+  // Make changes to filters variable
+  $filters_data['roomTypes']['filter_key'] = 'roomtype';
+  $filters_data['tintedOrReadyMix']['filter_key'] = 'tintedreadymix';
+  $filters_data['composition']['translatable'] = 1;
+  $filters_data['environmentalProducts']['translatable'] = 1;
+  $filters_data['friendlyPackSizeTranslation']['translatable'] = 1;
+  // Save variable
+  variable_set('dynamic_product_filters_values', $filters_data);
+}
+
+/**
+ * Revert feature feature_painters_permission
+ */
+function painters_deployment_update_7267() {
+  features_revert(array(
+      'feature_painters_permissions',
+    ));
+}
+
+/**
+ * Revert feature_painters_article_content
+ */
+function painters_deployment_update_7268() {
+  features_revert(array(
+      'feature_painters_article_content',
+    ));
+}
+
+/**
+ * Update copyright variables : Set default : Copyright © 2017 Akzo Nobel N.V.
+ */
+function painters_deployment_update_7269() {
+  variable_set('footer_copyright', 'Copyright ©');
+  variable_set('footer_copyright_brand', 'Akzo Nobel N.V.');
+}
+
+/**
+ * Enable the Quicktabs module
+ */
+function painters_deployment_update_7270() {
+  module_enable(array(
+      'quicktabs',
+      'quicktabs_tabsstyles',
+    ), TRUE);
+}
+
+/**
+ * Revert feature_platform_custom_text_format
+ */
+function painters_deployment_update_7271() {
+  features_revert(array('feature_platform_custom_text_format'));
+}
+
+/*
+ * Revert feature feature_painters_permissions
+ */
+function painters_deployment_update_7272() {
+  features_revert(array(
+      'feature_painters_permissions',
+    ));
+}
+
+/**
+ * Revert feature_painters_gpp_content_types
+ */
+function painters_deployment_update_7273() {
+  features_revert(array(
+      'feature_painters_gpp_content_types',
+    ));
+}
+
+/**
+ * Delete brand collection order multifield
+ */
+function painters_deployment_update_7274() {
+  _painters_delete_brand_cc_field();
+}
+
+/*
+ * Revert feature_painters_training
+ */
+function painters_deployment_update_7275() {
+  features_revert(array(
+      'feature_painters_training',
+    ));
+}
+
+/**
+ * Delete advise support panalizer page node
+ */
+function painters_deployment_update_7276() {
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'node')->entityCondition('bundle', 'panopoly_landing_page')->fieldCondition('field_dlr_sitemap_value', 'value', '42', '=');
+
+  $node_data = $query->execute();
+  if (count($node_data) && isset($node_data['node'])) {
+    $node_arr = $node_data['node'];
+    $nid = key($node_arr);
+    $node = node_load($nid);
+    $alias = $node->path['alias'];
+
+    $path = array();
+    $path['source'] = 'advice/knowledge';
+    $path['alias'] = $alias;
+    $path['language'] = $node->language;
+    path_save($path);
+
+    node_delete($nid);
+  }
+}
+
+/**
+ * Datasheet variable cleanup
+ */
+function painters_deployment_update_7277() {
+  variable_del('data_sheet_alphabet_list');
+  variable_del('data_sheet_alphabet_grouping');
+}
+
+/*
+ * Create missing cache_form table: image upload issue
+ */
+function painters_deployment_update_7278() {
+  if(db_table_exists('cache_form') == FALSE) {
+    $schema = drupal_get_schema('cache_form');
+    db_create_table('cache_form', $schema);
+  }
+}
+
+/**
+ * GPP store default configs.
+ */
+function painters_deployment_update_7279() {
+  module_enable ( array ( 'platform_stores', ), TRUE );
+  variable_set('marker_color', '#9A4892');
+  variable_set('svg_path_default', FALSE);
+  variable_set('svg_path_style', 1);
+  variable_set('offset_top', 158);
+  variable_set('santa_maria_api_distance_unit', 'KM');
+  variable_set('address_format', '{{address}}<br>{{zipcode}}&nbsp;&nbsp;{{city}}');
+
+  //Set path for store locator
+  $query = new EntityFieldQuery ();
+  $query->entityCondition ( 'entity_type', 'node' )->entityCondition ( 'bundle', 'panopoly_landing_page' )->fieldCondition ( 'field_dlr_sitemap_value', 'value', '50.00', '=' );
+  $node_data = $query->execute ();
+  if (count ( $node_data ) && isset ( $node_data ['node'] )) {
+    $node_arr = $node_data ['node'];
+    $nid = key ( $node_arr );
+    $node = node_load ( $nid );
+    $alias = $node->path ['alias'];
+
+    $path = array ();
+    $path ['source'] = 'store-locator';
+    $path ['alias'] = $alias;
+    $path ['language'] = $node->language;
+    path_save ( $path );
+
+    node_delete ( $nid );
+  }
+
+  //Disable Painters store
+  if (module_exists ( 'painters_stores' )) {
+		module_disable ( array (
+				'painters_stores'
+		) );
+	}
+}
+
+/**
+ * Delete field_packshots fields
+ * Revert feature feature_painters_gpp_content_types
+ */
+function painters_deployment_update_7283() {
+  $fields_to_delete = array(
+    'field_packshots_s',
+    'field_packshots_m',
+    'field_packshots_l',
+    'field_packshots_xl',
+  );
+  foreach ($fields_to_delete as $field_name) {
+    field_delete_field($field_name);
+    watchdog('Delete_Unused_fields', 'Deleted the :field_name field from all content type instances.', array(':field_name' => $field_name));
+  }
+  field_purge_batch(count($fields_to_delete) + 5);
+  features_revert(array('feature_painters_gpp_content_types' => array('field')));
+}
+
+/**
+ * Revert feature: feature_painters_global_search_server_and_index
+ */
+function painters_deployment_update_7284() {
+  features_revert(array(
+      'feature_painters_global_search_server_and_index',
+      'feature_painters_global_search_settings',
+    ));
+}
+
+/**
+ * Module enable for Home page four block configuration
+ */
+function painters_deployment_update_7285() {
+  $modules = array(
+    'painters_features_config',
+  );
+  $enable_dependencies = TRUE;
+  module_enable($modules, $enable_dependencies);
+}

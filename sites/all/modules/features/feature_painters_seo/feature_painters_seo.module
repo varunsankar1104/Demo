@@ -1,0 +1,7 @@
+<?php
+
+/**
+ * @file
+ * Code for the Feature Painters SEO feature.
+ */
+include_once 'feature_painters_seo.features.inc';

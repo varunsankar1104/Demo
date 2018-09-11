@@ -1,0 +1,571 @@
+<?php
+
+/**
+ * @file
+ * To handle product catalog functionality.
+ */
+
+/**
+ * Returns the API version of Panels. This didn't exist in 1.
+ *
+ * @return An array with the major and minor versions
+ */
+function painters_product_catalog_api_version() {
+  return array(
+    3,
+    1,
+  );
+}
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ *
+ * Implementing task and task_handler plugins.
+ */
+function painters_product_catalog_ctools_plugin_directory($module, $plugin) {
+  return 'plugins/' . $plugin;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function painters_product_catalog_menu() {
+  $items = array();
+  $items['admin/config/painters/highlighted-products'] = array(
+    'title' => 'Highlighted Products',
+    'description' => 'Select the Product for displaying in highlighed products',
+    'position' => 'left',
+    'weight' => -101,
+    'page callback' => 'painters_highlighted_product',
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function painters_product_catalog_block_info() {
+  $blocks = array();
+  $blocks['high_lighted_product'] = array(
+    'info' => t('High lighted Products'),
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function painters_product_catalog_block_view($delta = '') {
+  $block = array();
+  global $language;
+  switch ($delta) {
+    case 'high_lighted_product':
+      $variables = array();
+      $variables = variable_get('highlighted_product');
+      $variables = is_array($variables) ? $variables : array();
+      $variables = array_slice($variables, 0, 4);
+      $block['content'] = theme('highlighted_product_display', array(
+          'prod_list' => $variables,
+        ));
+      break;
+  }
+  return $block;
+}
+
+/**
+ * Function to hanlde the theming high lighted product
+ *
+ * @param unknown $vars
+ *
+ * @return multitype:NULL unknown Ambigous <string, unknown, A>
+ */
+function painters_product_catalog_highlighted_product_display(&$vars) {
+  $products = array();
+  global $language;
+  $lang = $language->language;
+  $more_products = array();
+  $variables = $vars['prod_list'];
+  $counter = 1;
+  foreach ($variables as $key => $value) {
+    $product = array();
+    $entity = node_load($value);
+    $product['url_alias'] = $entity->path['alias'];
+
+    $product_image = _painters_image_style($entity, 'field_packshots_s', 'product_listing_small', FALSE);
+
+    $product['title'] = $entity->title;
+    $product['nid'] = $entity->nid;
+
+    $field_brand = _painters_language_field($entity, 'field_prod_brand');
+    $product['brand'] = _get_term_name_bytid($field_brand['0']['tid']);
+    $product['image'] = $product_image;
+    if ($counter > 4) {
+      $more_products[] = $product;
+    }
+    else {
+      $products[] = $product;
+    }
+    $counter++;
+  }
+  $labels['title'] = painters_utils_get_label('product_overview_highlighted_products_label');
+  $labels['show_more'] = painters_utils_get_label('product_listing_show_more_label');
+  $labels['show_less'] = painters_utils_get_label('product_listing_show_less_label');
+  return theme('highlighted_products', array(
+      'products' => $products,
+      'labels' => $labels,
+      'more_products' => $more_products,
+    ));
+}
+
+/**
+ * Implements hook_theme().
+ */
+function painters_product_catalog_theme() {
+  return array(
+    'painters_highlighted_product_list' => array(
+      'render element' => 'form',
+    ),
+    'highlighted_product_display' => array(
+      'variables' => array(
+        'prod_list' => NULL,
+      ),
+    ),
+    'product_catelogue_brand_page' => array(
+      'template' => 'product-catelogue-brand-page',
+      'variables' => array(),
+    ),
+    'producthomepage_my_products' => array(
+      'template' => 'producthome-my-products',
+      'type' => 'theme',
+    ),
+  );
+}
+
+/**
+ * Returns the highlighted products.
+ */
+function painters_highlighted_product() {
+  $build['hl_products_search'] = drupal_get_form('painters_highlighted_product_search');
+  $build['hl_products_add'] = drupal_get_form('painters_highlighted_product_add');
+  $build['hl_products_list'] = drupal_get_form('painters_highlighted_product_list');
+  return $build;
+}
+
+/**
+ * Returns highlighted products to be used in search block.
+ *
+ * @param unknown $form
+ * @param unknown $form_state
+ *
+ * @return multitype:string The
+ */
+function painters_highlighted_product_search($form, &$form_state) {
+  $product_voc = taxonomy_vocabulary_machine_name_load('product_type');
+  $product_types = taxonomy_get_tree($product_voc->vid);
+  $product_type['choose'] = t('--Choose--');
+  foreach ($product_types as $term) {
+    $product_type[$term->tid] = $term->name;
+  }
+  $brand_voc = taxonomy_vocabulary_machine_name_load('prod_brandname');
+  $brands_terms = taxonomy_get_tree($brand_voc->vid);
+  $brands['choose'] = t('--Choose--');
+  foreach ($brands_terms as $brand) {
+    $brands[$brand->tid] = $brand->name;
+  }
+  $form['hl_product_search_title'] = array(
+    '#type' => 'item',
+    '#markup' => t('Admin page to add higlighted products'),
+  );
+  $form['hl_product_search'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Select Products'),
+  );
+  $form['hl_product_search']['product_category'] = array(
+    '#type' => 'select',
+    '#options' => $product_type,
+    '#title' => t('Product category'),
+  );
+  $form['hl_product_search']['product_brand'] = array(
+    '#type' => 'select',
+    '#options' => $brands,
+    '#title' => t('Brands'),
+  );
+  $form['hl_product_search']['product_search_submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Search'),
+  );
+  return $form;
+}
+
+/**
+ * Submit handler for highlighted product search
+ *
+ * @param unknown $form
+ * @param unknown $form_state
+ */
+function painters_highlighted_product_search_submit($form, $form_state) {
+  session_cache_set('hl_product_category', NULL);
+  session_cache_set('hl_product_brand', NULL);
+  $product_category = isset($form_state['values']['product_category']) ? $form_state['values']['product_category'] : '';
+  session_cache_set('hl_product_category', $product_category);
+  $product_brand = isset($form_state['values']['product_brand']) ? $form_state['values']['product_brand'] : '';
+  session_cache_set('hl_product_brand', $product_brand);
+}
+
+/**
+ * Function to Filter and add the highlighted product
+ *
+ * @param unknown $form
+ * @param unknown $form_state
+ *
+ * @return unknown
+ */
+function painters_highlighted_product_add($form, &$form_state) {
+  if (session_cache_get('hl_product_category') && session_cache_get('hl_product_category') != 'choose') {
+    $category_tid = session_cache_get('hl_product_category');
+  }
+  if (session_cache_get('hl_product_brand') && session_cache_get('hl_product_brand') != 'choose') {
+    $brand_nid = session_cache_get('hl_product_brand');
+  }
+  if (!empty($category_tid) || !empty($brand_nid)) {
+    $args = array(
+      $category_tid,
+      $brand_nid,
+    );
+    $view = views_get_view('highlighted_product');
+    $view->set_display('page');
+    $view->set_arguments($args);
+    $view->execute();
+    foreach ($view->result as $key => $value) {
+      $hl_produts[$value->_field_data['nid']['entity']->nid] = $value->_field_data['nid']['entity']->title;
+    }
+  }
+
+  $options = array();
+  $header = array(
+    'title' => t("Products"),
+  );
+  foreach ($hl_produts as $nid => $title) {
+    $options[$nid] = array(
+      'title' => $title,
+    );
+  }
+  $form['table'] = array(
+    '#type' => 'tableselect',
+    '#header' => $header,
+    '#options' => $options,
+    '#empty' => t('No products found'),
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Add Product'),
+    '#submit' => array(
+      'painters_highlighted_product_add_submit',
+    ),
+  );
+  return $form;
+}
+
+/**
+ * Funtion to handle the submit for the highlighted product
+ *
+ * @param unknown $form
+ * @param unknown $form_state
+ */
+function painters_highlighted_product_add_submit($form, $form_state) {
+  $product_ids = variable_get('highlighted_product');
+  if (empty($product_ids)) {
+    $product_ids = array();
+  }
+  foreach ($form_state['values']['table'] as $nid => $value) {
+    if ($value) {
+      $productID = $value;
+    }
+  }
+  if (!empty($product_ids)) {
+    array_push($product_ids, $productID);
+  }
+  else {
+    $product_ids = array(
+      $productID,
+    );
+  }
+  variable_set('highlighted_product', $product_ids);
+}
+
+/**
+ * Function to handle the Re-order of product
+ *
+ * @param unknown $form
+ * @param unknown $form_state
+ */
+function painters_highlighted_product_list($form, &$form_state) {
+  $product_nids = variable_get('highlighted_product');
+  if (count($product_nids) > 1) {
+    $product_nids = implode(',', $product_nids);
+  }
+  $product_data = array();
+  if (!empty($product_nids)) {
+    $args = array(
+      $product_nids,
+    );
+    $view = views_get_view('highlighted_product');
+    $view->set_display('page_1');
+    $view->set_arguments($args);
+    $view->execute();
+    if (!empty($view->result)) {
+      $product_data = $view->result;
+    }
+  }
+  return _buid_highlight_product_list($form, $form_state, $product_data);
+}
+
+/**
+ * Function to theme the highlighted product
+ *
+ * @param unknown $variables
+ */
+function theme_painters_highlighted_product_list($variables) {
+  return _theme_highlight_product_list($variables);
+}
+
+/**
+ * Function to build the re-oder form
+ *
+ * @param unknown $form
+ * @param unknown $form_state
+ * @param unknown $product_ids
+ *
+ * @return multitype:string The multitype:string
+ */
+function _buid_highlight_product_list($form, &$form_state, $product_ids) {
+  $form['#tree'] = TRUE;
+  if (count($product_ids) > 0) {
+    foreach ($product_ids as $key => $products) {
+      $form['hl_product'][$products->nid]['node'] = array(
+        '#type' => 'item',
+        '#markup' => check_plain($products->node_title),
+      );
+
+      $edit_link = l(t('Edit'), 'node/' . $products->nid . '/edit', array(
+          'attributes' => array(
+            'target' => '_blank',
+          ),
+        ));
+      $form['hl_product'][$products->nid]['edit'] = array(
+        '#type' => 'item',
+        '#markup' => $edit_link,
+      );
+      // This field is invisible, but contains sort info (weights).
+      $form['hl_product'][$products->nid]['weight'] = array(
+        '#type' => 'weight',
+        '#title' => t('Weight'),
+        '#title_display' => 'invisible',
+        '#default_value' => $products->nid,
+      );
+      $delete_link = l(t('Delete'), 'admin/config/painters/delete-block-variable/' . $products->nid . '/highlighted_product');
+      $form['hl_product'][$products->nid]['delete'] = array(
+        '#type' => 'item',
+        '#markup' => $delete_link,
+      );
+      $product_details[] = $products->nid;
+    }
+    variable_set('highlighted_product', $product_details);
+    // jQuery to implement remove feature. Setting the text field to empty
+    // and submitting the form will remove the rows.
+    $js = <<<EOD
+(function ($) {
+  $(function() {
+    $('a.remove-row').click(function() {
+      $(this).closest('tr').fadeOut(function() {
+        $(this).find('input.form-autocomplete').val('')
+          .closest('form').submit();
+      });
+    });;
+  });
+})(jQuery);
+EOD;
+    drupal_add_js($js, array(
+        'type' => 'inline',
+      ));
+
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Save'),
+      '#submit' => array(
+        'painters_highlighted_product_list_submit',
+      ),
+    );
+    $push_to_live = l(t('Push the re-ordered nodes to live server'), 'deploy-variable-authoring-server/' . 'highlighted_product/' . 'nids');
+    $form['push_to_live'] = array(
+      '#type' => 'item',
+      '#markup' => $push_to_live,
+    );
+  }
+  else {
+    drupal_set_message(t('No Products Found.'));
+  }
+  return $form;
+}
+
+/**
+ * Function to theme the high lighted product re-order
+ *
+ * @param unknown $variables
+ *
+ * @return Ambigous <string, A>|string
+ */
+function _theme_highlight_product_list($variables) {
+  $form = $variables['form'];
+  $rows = array();
+  if (count($form['hl_product']) > 0) {
+    foreach (element_children($form['hl_product']) as $nid) {
+      $form['hl_product'][$nid]['weight']['#attributes']['class'] = array(
+        'slides-order-weight',
+      );
+      $rows[] = array(
+        'data' => array(
+          array(
+            'class' => array(
+              'slide-cross',
+            ),
+          ),
+          drupal_render($form['hl_product'][$nid]['node']),
+          drupal_render($form['hl_product'][$nid]['edit']),
+          drupal_render($form['hl_product'][$nid]['weight']),
+          drupal_render($form['hl_product'][$nid]['delete']),
+        ),
+        'class' => array(
+          'draggable',
+        ),
+      );
+    }
+
+    $header = array(
+      t(''),
+      t('Product Title'),
+      t('Edit'),
+      t('Order Weight'),
+      t('Delete'),
+    );
+    $output = drupal_render($form['note']);
+    $output .= theme('table', array(
+        'header' => $header,
+        'rows' => $rows,
+        'attributes' => array(
+          'id' => 'slides-order',
+        ),
+      ));
+    $output .= drupal_render_children($form);
+
+    drupal_add_tabledrag('slides-order', 'order', 'sibling', 'slides-order-weight');
+
+    return $output;
+  }
+  else {
+    // return t('No Color Collections Found.');
+    return '';
+  }
+}
+
+/**
+ * Function for submit hanlder for the highlighted product
+ *
+ * @param unknown $form
+ * @param unknown $form_state
+ */
+function painters_highlighted_product_list_submit($form, &$form_state) {
+  $hl_products = array();
+  foreach ($form_state['values']['hl_product'] as $nid => $products) {
+    if ($nid) {
+      $hl_products[] = array(
+        'nid' => $nid,
+        'weight' => $products['weight'],
+      );
+    }
+    $product_ids[] = $nid;
+  }
+  if (!empty($hl_products)) {
+    foreach ($hl_products as $product) {
+      if ($node = node_load($product['nid'])) {
+        // $key_order = key($node->field_product_ordwer_weight);
+        $node->field_product_ordwer_weight[LANGUAGE_NONE][0]['value'] = $product['weight'];
+        node_save($node);
+      }
+    }
+    drupal_set_message(t('Product sorting order has been saved.'));
+  }
+}
+
+/**
+ * Function to get the search option
+ */
+function product_search_options($cotent_type) {
+  $results = array();
+  $results['choose'] = t('--Choose--');
+  $query = db_select('node', 'n');
+  $query->condition('n.status', '1', '=');
+  $query->condition('n.type', $cotent_type, '=');
+  $query->fields('n', array(
+      'nid',
+      'title',
+    ));
+  $products = $query->execute();
+  foreach ($products as $row) {
+    $results[$row->nid] = check_plain($row->title);
+  }
+
+  return $results;
+}
+
+/**
+ * Function for the Highlighted product.
+ *
+ * @param unknown $variables
+ *
+ * @return
+ *
+ */
+function _high_lighted_product_block($variables) {
+  foreach ($variables as $key => $value) {
+    $product_nid = node_load(key($value));
+    $product_image = theme('image', array(
+        'path' => $entity->field_packshots_s[$lang]['0']['uri'],
+        'alt' => $entity->field_packshots_s[$lang]['0']['field_file_image_alt_text'][$lang]['0']['value'],
+      ));
+    $product_data[$product_nid->nid] = array(
+      'name' => $entity->title,
+      'brand' => _get_brand_name($product_nid->field_brand[LANGUAGE_NONE]['0']['target_id']),
+      'image' => $product_image,
+    );
+  }
+  return $product_data;
+}
+
+/**
+ *
+ * @param <type> $vars
+ */
+function template_highlighted_product_display($variables) {
+  return t('Products');
+}
+
+/**
+ * Implements hook_form_alter().
+ *
+ * Altering form with ID ctools_node_content_type_edit_form.
+ */
+function painters_product_catalog_form_alter(&$form, $form_state, $form_id) {
+  switch ($form_id) {
+    case 'ctools_node_content_type_edit_form':
+
+      // We set default options to support painters custom layouts
+      $form['override_title']['#default_value'] = TRUE;
+      $form['leave_node_title']['#default_value'] = TRUE;
+      break;
+  }
+}

@@ -1,0 +1,132 @@
+<?php
+
+/**
+ * @file
+ * Code for the painters_popular_content module.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function painters_popular_content_menu() {
+  $items = array();
+
+  $items['save-popular-content'] = array(
+    'title' => 'Saving Painter Popular content',
+    'page callback' => 'painters_popular_content_save',
+    'access callback' => TRUE,
+  );
+
+  return $items;
+}
+
+/**
+ * Saves popular content to database.
+ */
+function painters_popular_content_save() {
+  $nodetype = check_plain($_GET['type']);
+  $nid = check_plain($_GET['nid']);
+  if (isset($nodetype) && $nodetype != '' && isset($nid) && $nid != '') {
+    // check nid exists & get count
+    $get_count = db_select('painters_popular_content', 'p')->fields('p', array(
+        'count',
+      ))->condition('p.nid', $nid, '=')->condition('p.node_type', $nodetype, 'like')->execute()->fetchField();
+
+    if ($get_count > 0) {
+      $output = $get_count + 1;
+      db_update('painters_popular_content')->fields(array(
+          'count' => $get_count + 1,
+        ))->condition('nid', $nid, '=')->condition('node_type', $nodetype, 'like')->execute();
+    }
+    else {
+      $output = 1;
+      // Table name no longer needs {}
+      db_insert('painters_popular_content')->fields(array(
+          'nid' => $nid,
+          'node_type' => $nodetype,
+          'count' => 1,
+        ))->execute();
+    }
+    echo json_encode($output);
+    exit();
+  }
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function painters_popular_content_block_info() {
+  $blocks['popular_colors'] = array(
+    'info' => t('Popular Colors'),
+    'cache' => DRUPAL_NO_CACHE,
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function painters_popular_content_block_view($delta = '') {
+  switch ($delta) {
+    case 'popular_colors':
+      if (user_access('access content')) {
+        $block['subject'] = t('Popular Colors');
+        // For adding more data to block body
+        $block['content'] = popular_colors_block();
+        return $block;
+      }
+      break;
+  }
+}
+
+/**
+ * Adding more data to popular_colors block.
+ */
+function popular_colors_block() {
+  $items = array();
+  $popular_colours_query = db_select("painters_popular_content", "ppc")->fields("ppc", array(
+      "nid",
+      "node_type",
+      "count",
+    ))->condition("ppc.node_type", "color")->orderBy('ppc.count', 'DESC')->range(0, 5)->execute();
+  while ($colors_record = $popular_colours_query->fetchAssoc()) {
+    $query = db_select('node', 'n');
+    $query->join('field_data_field_rgb', 'rgb', 'n.nid = rgb.entity_id');
+    $query->join('field_data_field_color_number', 'cno', 'n.nid = cno.entity_id');
+    $query->fields('n', array(
+        'nid',
+      ))->fields('rgb', array(
+        'field_rgb_value',
+      ))->fields('cno', array(
+        'field_color_number_value',
+      ))->condition('n.nid', $colors_record['nid']);
+    $result = $query->execute();
+    while ($record = $result->fetchAssoc()) {
+      $items[] = $record;
+    }
+  }
+  // Passing $items to popular_colors_block.tpl.php
+  return theme('popular_colors_block', array(
+      'items' => $items,
+    ));
+}
+
+/**
+ * Implements hook_theme().
+ *
+ * Registering your default tpl for the color_search_form block
+ */
+function painters_popular_content_theme() {
+  $module_path = drupal_get_path('module', 'painters_popular_content');
+  $base = array(
+    'path' => "$module_path/theme",
+  );
+  return array(
+    'popular_colors_block' => $base + array(
+      'template' => 'popular_colors_block',
+      'variables' => array(
+        'items' => NULL,
+      ),
+    ),
+  );
+}

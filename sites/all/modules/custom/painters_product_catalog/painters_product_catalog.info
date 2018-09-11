@@ -1,0 +1,8 @@
+name = Painters product catalog page
+description = Painters product catalog page
+core = 7.x
+package = Platform
+version = 7.x-1.0
+
+
+dependencies[] = painters_features_config

@@ -1,0 +1,7 @@
+<?php
+
+/**
+ * @file
+ * Code for the feature footer brand icons feature.
+ */
+include_once 'feature_footer_brand_icons.features.inc';

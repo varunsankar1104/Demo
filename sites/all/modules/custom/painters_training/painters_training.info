@@ -1,0 +1,5 @@
+name = Painters Training
+description = Painters training manager 
+core = 7.x
+package = Painters
+version = 7.x-1.0

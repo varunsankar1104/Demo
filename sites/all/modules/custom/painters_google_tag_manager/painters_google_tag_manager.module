@@ -1,0 +1,934 @@
+<?php
+
+/**
+ * @file
+ * Code for the painters_google_tag_manager module.
+ */
+
+/**
+ * Implements hook_preprocess_html().
+ * Returns the state of painters_google_tag_manager.js insertion on the current page response.
+ *
+ * @return boolean TRUE if the conditions are met; FALSE otherwise.
+ */
+function painters_google_tag_manager_preprocess_html(&$variables, $hook) {
+  $request_path = request_path();
+  if (!google_tag_insert_snippet() || strstr($request_path, 'media/browser')) {
+    return;
+  }
+  drupal_add_js(drupal_get_path('module', 'painters_google_tag_manager') . '/js/painters_google_tag_manager.js');
+}
+
+/**
+ * Implements hook_menu().
+ */
+function painters_google_tag_manager_menu() {
+  $items = array();
+  $items['admin/config/painters/google_tag_manager'] = array(
+    'title' => 'Google Tag Manager Settings',
+    'description' => 'Configure Google Tag Manager settings page',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'painters_google_tag_manager_admin_settings',
+    ),
+    'access arguments' => array(
+      'administer site configuration',
+    ),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'painters_google_tag_manager.admin.inc',
+  );
+  $items['get-client-ip'] = array(
+    'title' => 'returns client ip address',
+    'page callback' => '_painters_get_client_ip_address',
+    'access callback' => TRUE,
+  );
+  return $items;
+}
+
+/**
+ * Implementes hook_user_login().
+ */
+function painters_google_tag_manager_user_login(&$edit, $account) {
+  $expire_time = time() + (86400 * 30);
+  // Save Current URL in Cookie
+  unset($_COOKIE['logged_in']);
+  setcookie('logged_in', NULL, time() - 99999, "/");
+  // Set COOKIE
+  setcookie('logged_in', 'logged_in', $expire_time, "/");
+}
+
+/**
+ * Implements hook_datalayer_alter().
+ */
+function painters_google_tag_manager_datalayer_alter(&$data_layer) {
+  global $base_url, $language, $user;
+  // request_path() - returns requesting url path
+  $request_path = request_path();
+  // current_path() - returns real path of requested url path not the alias
+  $current_path = current_path();
+  // Returns the equivalent of Apache's $_SERVER['REQUEST_URI'] variable
+  $request_uri = request_uri();
+  if (!google_tag_insert_snippet() || strstr($request_path, 'media/browser')) {
+    $data_layer = '';
+    return;
+  }
+  if (isset($request_uri)) {
+    $query_search = explode('?', $request_uri);
+    if (isset($query_search[1])) {
+      $current_url = $base_url . '/' . $request_path . '?' . $query_search[1];
+    }
+    else {
+      $current_url = $base_url . '/' . $request_path;
+    }
+  }
+
+  // $_SERVER['SERVER_NAME'] - server name as defined in host configuration (i.e for Apache the Apache .conf file).
+  // $_SERVER['HTTP_HOST'] - domain name through which the current request is being fulfilled and is more directly related to the request.
+
+  $referring_url = $_SERVER['HTTP_REFERER'];
+
+  if (!$referring_url) {
+    $referring_url = 'undefined';
+  }
+
+  $page_instance_id = variable_get('gtm_page_instanceid', 'live');
+  $data_layer['pageInstanceID'] = $page_instance_id;
+  $sitecodevalue = variable_get('santa_maria_api_domain_code');
+  $data_layer['siteCode'] = $sitecodevalue;
+  // $data_layer['trafficClassificationID'] = get_client_ip();
+  // Page related GTM Tags
+  $country_code = variable_get('site_default_country', 'IN');
+  // pageID
+  $data_layer['page']['pageInfo']['pageID'] = isset($data_layer['entityId']) ? $data_layer['entityId'] : $current_path;
+  // pageName
+  $data_layer['page']['pageInfo']['pageName'] = drupal_get_title();
+  // destinationURL
+  $data_layer['page']['pageInfo']['destinationURL'] = $current_url;
+  // Referring URL
+  if ($referring_url != 'undefined') {
+    $data_layer['page']['pageInfo']['referringURL'] = $referring_url;
+  }
+  // language
+  $data_layer['page']['pageInfo']['language'] = $language->language . '-' . $country_code;
+  // geoRegion
+  $data_layer['page']['pageInfo']['geoRegion'] = $country_code;
+  // colourCollectionName
+  if (isset($data_layer['entityType']) && $data_layer['entityType'] == 'node' && isset($data_layer['entityBundle']) && $data_layer['entityBundle'] == 'color_collection') {
+    $data_layer['page']['pageInfo']['colourCollectionName'] = drupal_get_title();
+  }
+
+  // functionalityVersion
+  $data_layer['page']['attributes']['functionalityVersion'] = variable_get('gtm_functionality_version', 1);
+
+  // pageType
+  $page_type = painters_get_page_type($data_layer, $current_path, $request_path);
+  if (isset($page_type) && $page_type != '') {
+    $data_layer['page']['category']['pageType'] = $page_type;
+  }
+
+  // primaryCategory
+  $primary_cat_type = painters_get_primary_cat_type($data_layer, $current_path, $request_path);
+  if (isset($primary_cat_type) && $primary_cat_type != '') {
+    $data_layer['page']['category']['primaryCategory'] = $primary_cat_type;
+  }
+
+  // primaryCategory
+  $brand = painters_get_brand($data_layer, $current_path, $request_path);
+  if (isset($brand) && $brand != '') {
+    $data_layer['page']['category']['brand'] = $brand;
+  }
+
+  // Subcategory 1
+  $painters_get_subcategory1 = painters_get_subcategory1($data_layer, $current_path, $request_path);
+  if (isset($painters_get_subcategory1) && $painters_get_subcategory1 != '') {
+    $data_layer['page']['category']['subCategory1'] = $painters_get_subcategory1;
+  }
+
+  // Subcategory2
+  $painters_get_subcategory2 = painters_get_subcategory2($data_layer, $current_path, $request_path);
+  if (isset($painters_get_subcategory2) && $painters_get_subcategory2 != '') {
+    $data_layer['page']['category']['subCategory2'] = $painters_get_subcategory2;
+  }
+
+  // Searchresultcategory1
+  $painters_get_searchResultCategory1 = painters_get_searchresultcategory1($data_layer, $current_path, $request_path);
+  if (isset($painters_get_searchResultCategory1) && $painters_get_searchResultCategory1 !== '') {
+    $data_layer['page']['attributes']['searchResultCategory1'] = $painters_get_searchResultCategory1;
+  }
+
+  // Searchresultcategory2
+  $painters_get_searchResultCategory2 = painters_get_searchresultcategory2($data_layer, $current_path, $request_path);
+  if (isset($painters_get_searchResultCategory2) && $painters_get_searchResultCategory2 !== '') {
+    $data_layer['page']['attributes']['searchResultCategory2'] = $painters_get_searchResultCategory2;
+  }
+
+  // Searchresultcategory3
+  $painters_get_searchResultCategory3 = painters_get_searchresultcategory3($data_layer, $current_path, $request_path);
+  if (isset($painters_get_searchResultCategory3) && $painters_get_searchResultCategory3 !== '') {
+    $data_layer['page']['attributes']['searchResultCategory3'] = $painters_get_searchResultCategory3;
+  }
+
+  // Searchresultcategory4
+  $painters_get_searchResultCategory4 = painters_get_searchresultcategory4($data_layer, $current_path, $request_path);
+  if (isset($painters_get_searchResultCategory4) && $painters_get_searchResultCategory4 !== '') {
+    $data_layer['page']['attributes']['searchResultCategory4'] = $painters_get_searchResultCategory4;
+  }
+
+  // Searchresultcategory5
+  $painters_get_searchResultCategory5 = painters_get_searchresultcategory5($data_layer, $current_path, $request_path);
+  if (isset($data_layer['page']['category']['pageType']) && $data_layer['page']['category']['pageType'] == 'Storefinder') {
+    $data_layer['page']['attributes']['searchResultCategory5'] = 0;
+  }
+
+  // Searchresultcategory6
+  $painters_get_searchResultCategory6 = painters_get_searchresultcategory6($data_layer, $current_path, $request_path);
+  if (isset($painters_get_searchResultCategory6) && $painters_get_searchResultCategory6 !== '') {
+    $data_layer['page']['attributes']['searchResultCategory6'] = 0;
+  }
+  // Product related GTM Datalayer Tags
+  if (isset($data_layer['entityType']) && $data_layer['entityType'] == 'node' && isset($data_layer['entityBundle']) && $data_layer['entityBundle'] == 'platform_product') {
+    // Load Product
+    $product_load = node_load($data_layer['entityId']);
+    $field_product_global_id = field_get_items('node', $product_load, 'field_product_global_id', $product_load->language);
+    $field_product_global_id = array_shift($field_product_global_id);
+
+    // productInfo Parameteres
+    $data_layer['products']['productInfo']['productID'] = $field_product_global_id['safe_value'];
+    $data_layer['products']['productInfo']['productName'] = $product_load->title;
+
+    $color_id = '';
+    // Global colour ID [Colour ID]
+    if (isset($_GET['colorid']) && !empty($_GET['colorid'])) {
+      $color_collection_colorid = check_plain($_GET['colorid']);
+      $color_details = _get_solr_color_entity($color_collection_colorid);
+      if (isset($color_details) && !empty($color_details)) {
+        $data_layer['products']['productInfo']['colourID'] = $color_collection_colorid;
+        $data_layer['products']['productInfo']['colourName'] = $color_details['colornumber'];
+        $data_layer['products']['productInfo']['colourCollection'] = $color_details['collection'];
+      }
+    }
+    $product_size = get_packsize_dropdown_solr($field_product_global_id['safe_value']);
+    if (!empty($product_size)) {
+      $product_size = array_values($product_size);
+      $data_layer['products']['productInfo']['size'] = $product_size[0];
+    }
+
+    // category Parameteres
+    $get_product_type = field_get_items('node', $product_load, 'field_product_category', $product_load->language);
+    $get_product_type = array_shift($get_product_type);
+    if (isset($get_product_type['taxonomy_term']->name)) {
+      $product_type_term = $get_product_type['taxonomy_term']->name;
+    }
+    $data_layer['products']['category']['primaryCategory'] = $product_type_term;
+  }
+  // User related GTM Tags
+  if ($user->uid > 0) {
+    $data_layer['user'] = array(
+      'userID' => _get_sm_api_user_id(),
+      'segment' => array(
+        'loginType' => painters_get_login_type(),
+      ),
+    );
+  }
+
+  // Unset default $data_layer variables provided by datalayer contrib module
+  unset($data_layer['drupalLanguage']);
+  unset($data_layer['entityLanguage']);
+  unset($data_layer['userUid']);
+  unset($data_layer['entityId']);
+  unset($data_layer['entityTnid']);
+  unset($data_layer['entityVid']);
+  unset($data_layer['entityName']);
+  unset($data_layer['entityCreated']);
+  unset($data_layer['entityStatus']);
+  unset($data_layer['entityLabel']);
+  unset($data_layer['entityType']);
+  unset($data_layer['entityBundle']);
+  unset($data_layer['entityUid']);
+  unset($data_layer['entityTaxonomy']);
+
+  $painters_data_layer_object = $data_layer;
+
+  if (strstr($base_url . '/' . $current_path, $base_url . '/products-listing') || strstr($base_url . '/' . $current_path, $base_url . '/products') || strstr($base_url . '/' . $current_path, $base_url . '/colours/search') || strstr($base_url . '/' . $current_path, $base_url . '/products/search') || strstr($base_url . '/' . $current_path, $base_url . '/search') || strstr($base_url . '/' . $current_path, $base_url . '/products/compare') || strstr($base_url . '/' . $current_path, $base_url . '/products/datasheets') || strstr($base_url . '/' . $current_path, $base_url . '/data-sheet/search') || strstr($base_url . '/' . $current_path, $base_url . '/shopping-list') || strstr($current_path, 'workspace/detail/') || strstr($current_path, 'painters-ajax/user/register') || strstr($current_path, 'painters-ajax/user/login') || (isset($data_layer['page']['category']['subCategory2']) && $data_layer['page']['category']['subCategory2'] == 'Knowledge center category') || ($data_layer['page']['category']['pageType'] == 'Overview' && $data_layer['page']['category']['primaryCategory'] == 'Workspace')) {
+    $data_layer = '';
+  }
+
+  // Unset DLR PHP variable as we are passing all the data to JS then to DLR
+  // $data_layer = '';
+
+  drupal_add_js(array(
+    'painters_google_tag_manager' => array(
+      'data_layer' => $painters_data_layer_object,
+    ),
+      ), 'setting');
+
+  // dlr_login_type
+  if (isset($_COOKIE['dlr_login_type']) && $_COOKIE['dlr_login_type'] != '') {
+    drupal_add_js(array(
+      'painters_google_tag_manager' => array(
+        'dlr_login_type' => $_COOKIE['dlr_login_type'],
+      ),
+        ), 'setting');
+  }
+  // register_type
+  if (isset($_COOKIE['dlr_register_type']) && $_COOKIE['dlr_register_type'] != '') {
+    drupal_add_js(array(
+      'painters_google_tag_manager' => array(
+        'dlr_register_type' => $_COOKIE['dlr_register_type'],
+      ),
+        ), 'setting');
+  }
+
+  // dlr_user_password
+  if (isset($_COOKIE['dlr_user_password']) && $_COOKIE['dlr_user_password'] != '') {
+    drupal_add_js(array(
+      'painters_google_tag_manager' => array(
+        'dlr_user_password' => $_COOKIE['dlr_user_password'],
+      ),
+        ), 'setting');
+  }
+
+  // dlr_user_personal_info
+  if (isset($_COOKIE['dlr_user_personal_info']) && $_COOKIE['dlr_user_personal_info'] != '') {
+    drupal_add_js(array(
+      'painters_google_tag_manager' => array(
+        'dlr_user_personal_info' => $_COOKIE['dlr_user_personal_info'],
+      ),
+        ), 'setting');
+  }
+
+  // dlr_user_addr_info
+  if (isset($_COOKIE['dlr_user_addr_info']) && $_COOKIE['dlr_user_addr_info'] != '') {
+    drupal_add_js(array(
+      'painters_google_tag_manager' => array(
+        'dlr_user_addr_info' => $_COOKIE['dlr_user_addr_info'],
+      ),
+        ), 'setting');
+  }
+
+  // dlr_user_cmp_info
+  if (isset($_COOKIE['dlr_user_cmp_info']) && $_COOKIE['dlr_user_cmp_info'] != '') {
+    drupal_add_js(array(
+      'painters_google_tag_manager' => array(
+        'dlr_user_cmp_info' => $_COOKIE['dlr_user_cmp_info'],
+      ),
+        ), 'setting');
+  }
+
+  // dlr_user_delete
+  if (isset($_COOKIE['dlr_user_delete']) && $_COOKIE['dlr_user_delete'] != '') {
+    drupal_add_js(array(
+      'painters_google_tag_manager' => array(
+        'dlr_user_delete' => $_COOKIE['dlr_user_delete'],
+      ),
+        ), 'setting');
+  }
+}
+
+/**
+ * Returns the page type / template used.
+ *
+ * Homepage - On main home page
+ * Overview - Overview in Inspiration/Advice/Colour/Collection section. Or the product overview page (that does not feature products)
+ *
+ * Decision - Decision page in products section, products must be visible on the page
+ * Detail - Either Colour or collection detail page
+ * PDP - Product detail page
+ * Storefinder - Storefinder overview page
+ * SDP - Store detail page
+ * Search - On-site search results page
+ * Login - Login page
+ * Change password - Change password account page
+ * Register - Registration page
+ */
+function painters_get_page_type($data_layer, $current_path, $request_path) {
+  if (drupal_is_front_page()) {
+    return 'Homepage';
+  }
+  elseif (isset($data_layer['entityType']) && $data_layer['entityType'] == 'node') {
+    if (isset($data_layer['entityBundle']) && $data_layer['entityBundle'] == 'brand') {
+      return 'Homepage';
+    }
+    elseif (isset($data_layer['entityBundle']) && $data_layer['entityBundle'] == 'faq') {
+      return 'Article';
+    }
+    elseif (isset($data_layer['entityBundle']) && $data_layer['entityBundle'] == 'platform_product') {
+      return 'PDP';
+    }
+    elseif (isset($data_layer['entityBundle']) && ($data_layer['entityBundle'] == 'color' || $data_layer['entityBundle'] == 'color_collection' || $data_layer['entityBundle'] == 'color_tools' || $data_layer['entityBundle'] == 'training')) {
+      return 'Detail';
+    }
+    elseif (isset($data_layer['entityBundle']) && $data_layer['entityBundle'] == 'panopoly_landing_page') {
+      $page_type_value = _get_page_type_panopoly_landing_page($data_layer, $current_path, $request_path);
+      return $page_type_value;
+    }
+    elseif ($data_layer['entityBundle'] == 'painters_article') {
+      return 'Article';
+    }
+    else {
+      return 'Article';
+    }
+  }
+  elseif (strstr($current_path, 'shopping-list')) {
+    return 'detail';
+  }
+  elseif (strstr($current_path, 'workspace/detail')) {
+    return 'Detail';
+  }
+  elseif (strstr($current_path, 'workspace')) {
+    return 'Overview';
+  }
+  elseif (strstr($current_path, 'contact-us-thankyou-message') || strstr($current_path, 'training/registration-success')) {
+    return 'Confirmation';
+  }
+  elseif (strstr($current_path, 'colours/search')) {
+    return 'Search';
+  }
+  elseif (strstr($current_path, 'color-listing') || strstr($current_path, 'colours') || strstr($current_path, 'colours/collections') || strstr($current_path, 'colours/tools') || strstr($current_path, 'contact-us')) {
+    return 'Overview';
+  }
+  elseif ($current_path == 'products' || strstr($current_path, 'products-listing')) {
+    return 'Decision';
+  }
+  elseif ($data_layer['userUid'] == 0 && strstr($current_path, 'user')) {
+    return 'Login';
+  }
+  elseif (strstr($current_path, 'products/compare')) {
+    return 'Comparison';
+  }
+  elseif ($data_layer['userUid'] > 0 && strstr($current_path, 'user')) {
+    return 'Detail';
+  }
+  elseif (strstr($current_path, 'user') || strstr($current_path, 'my-account') || strstr($current_path, 'update/password') || strstr($current_path, 'profile-update-success') || strstr($current_path, 'password-change-success') || strstr($current_path, 'password-email-sent')) {
+    return 'Detail';
+  }
+  elseif (strstr($current_path, 'store-locator/')) {
+    return 'SDP';
+  }
+  elseif (strstr($current_path, 'store-locator') || strstr($current_path, 'store-locator/')) {
+    return 'Storefinder';
+  }
+  elseif (strstr($current_path, 'products/datasheets')) {
+    return 'Overview';
+  }
+  elseif (strstr($current_path, 'data-sheet/search')) {
+    return 'Search';
+  }
+  elseif (strstr($current_path, 'search')) {
+    return 'Search';
+  }
+  elseif (strstr($current_path, 'advice/knowledge')) {
+    return 'Overview';
+  }
+  else {
+    return 'Article';
+  }
+}
+
+/**
+ * Returns the primary category of the page (e.g., inspiration).
+ *
+ * Home - Home page
+ * Colour - All colour related pages. Overview and detail
+ * Collection - All collection related pages. Overview and detail
+ * Product - Product related pages. Overview, decision and PDP
+ * Inspiration - All inspiration related pages. Overview and article
+ * Advice - All advice related pages. Overview and article
+ * Storefinder - All storefinder related pages. Storefinder and SDP
+ * Search - Search related page
+ * Scrapbook - Scrapbook related page
+ * Account - All account related pages. Overview, login, register, change password
+ * Shopping list - All shopping list related pages
+ * Question module - All question module related pages
+ */
+function painters_get_primary_cat_type($data_layer, $current_path, $request_path) {
+  if (drupal_is_front_page()) {
+    return 'Home';
+  }
+  elseif (isset($data_layer['entityType']) && $data_layer['entityType'] == 'node') {
+    if (isset($data_layer['entityBundle']) && $data_layer['entityBundle'] == 'platform_product') {
+      return 'Product';
+    }
+    if (isset($data_layer['entityBundle']) && $data_layer['entityBundle'] == 'brand') {
+      return 'Home';
+    }
+    elseif (isset($data_layer['entityBundle']) && $data_layer['entityBundle'] == 'panopoly_landing_page') {
+      $page_type_value = _get_primary_category_panopoly_landing_page($data_layer, $current_path, $request_path);
+      return $page_type_value;
+    }
+    elseif (isset($data_layer['entityBundle']) && ($data_layer['entityBundle'] == 'color' || $data_layer['entityBundle'] == 'color_collection' || $data_layer['entityBundle'] == 'color_tools')) {
+      return 'Colour';
+    }
+    elseif ($data_layer['entityBundle'] == 'training' || $data_layer['entityBundle'] == 'faq') {
+      return 'Advice';
+    }
+    elseif ($data_layer['entityBundle'] == 'painters_article') {
+      if (isset($data_layer['entityTaxonomy']['article_category']) && (in_array('Sustainability', $data_layer['entityTaxonomy']['article_category']) || in_array(t('Sustainability'), $data_layer['entityTaxonomy']['article_category']))) {
+        return "Product";
+      }
+      elseif (isset($data_layer['entityTaxonomy']['article_category']) && !empty($data_layer['entityTaxonomy']['article_category'])) {
+        return 'Advice';
+      }
+      else {
+        return 'Support';
+      }
+    }
+    else {
+      return 'Support';
+    }
+  }
+  elseif (strstr($current_path, 'workspace')) {
+    return 'Workspace';
+  }
+  elseif (strstr($current_path, 'color-listing') || strstr($current_path, 'colours') || strstr($current_path, 'colours/search') || strstr($current_path, 'color-collection-overview') || strstr($current_path, 'colours/tools')) {
+    return 'Colour';
+  }
+  elseif (strstr($current_path, 'products-listing') || strstr($current_path, 'products') || strstr($current_path, 'products/compare') || strstr($current_path, 'products/datasheets') || strstr($current_path, 'data-sheet/search') || strstr($current_path, 'products/search')) {
+    return 'Product';
+  }
+  elseif (strstr($current_path, 'contact-us') || strstr($current_path, 'training/registration-success') || strstr($current_path, 'advice/knowledge')) {
+    return 'Advice';
+  }
+  elseif (strstr($current_path, 'store-locator') || strstr($current_path, 'store-locator/')) {
+    return 'Storefinder';
+  }
+  elseif (strstr($current_path, 'search')) {
+    return 'Search';
+  }
+  elseif (strstr($current_path, 'shopping-list')) {
+    return 'Shopping list';
+  }
+  elseif (strstr($current_path, 'user') || strstr($current_path, 'my-account') || strstr($current_path, 'update/password') || strstr($current_path, 'profile-update-success') || strstr($current_path, 'password-change-success') || strstr($current_path, 'password-email-sent')) {
+    return 'Account';
+  }
+  else {
+    return 'Support';
+  }
+}
+
+/**
+ * Retunrs Brand title if exists, 'NO-BRAND' otherwise.
+ */
+function painters_get_brand($data_layer, $current_path, $request_path) {
+  if (isset($data_layer['entityType']) && $data_layer['entityType'] == 'node') {
+    if (isset($data_layer['entityBundle']) && $data_layer['entityBundle'] == 'brand') {
+      $lead_brand = _get_lead_brand_content();
+      if ($lead_brand['nid'] != $data_layer['entityId']) {
+        return drupal_get_title();
+      }
+    }
+    elseif (isset($data_layer['entityBundle']) && $data_layer['entityBundle'] == 'platform_product') {
+      if (isset($data_layer['entityTaxonomy']['prod_brandname']) && !empty($data_layer['entityTaxonomy']['prod_brandname'])) {
+        $data_layer_values = array_values($data_layer['entityTaxonomy']['prod_brandname']);
+        return $data_layer_values[0];
+      }
+      return PAINTERS_PRODUCT_BRAND_PLACEHOLDER;
+    }
+  }
+}
+
+/**
+ * Pages indicated as:21,22,31,32,41,42,43,44
+ *
+ * Values - [Tool, Collection, Sustainability, Document, FAQ, Knowledge center, Training, Contact]
+ *
+ * Displays the subcategory of the page e.g., the
+ * main focus of the page. The combination of
+ * primaryCategory and subCategory1 should
+ * cover the area of focus.
+ */
+function painters_get_subcategory1($data_layer, $current_path, $request_path) {
+  if (isset($data_layer['entityType']) && $data_layer['entityType'] == 'node') {
+    if (isset($data_layer['entityBundle']) && $data_layer['entityBundle'] == 'panopoly_landing_page') {
+      return _get_sub_cat1_panopoly_landing_page($data_layer, $current_path, $request_path);
+    }
+    elseif ($data_layer['entityBundle'] == 'color_collection') {
+      return 'Collection';
+    }
+    elseif ($data_layer['entityBundle'] == 'color_tools') {
+      return 'Tool';
+    }
+    elseif ($data_layer['entityBundle'] == 'training') {
+      return 'Training';
+    }
+    elseif (isset($data_layer['entityBundle']) && $data_layer['entityBundle'] == 'faq') {
+      return 'FAQ';
+    }
+    elseif ($data_layer['entityBundle'] == 'painters_article') {
+      if (isset($data_layer['entityTaxonomy']['article_category'])) {
+        if (in_array('Sustainability', $data_layer['entityTaxonomy']['article_category']) || in_array(t('Sustainability'), $data_layer['entityTaxonomy']['article_category'])) {
+          return 'Sustainability';
+        }
+        elseif (isset($data_layer['entityTaxonomy']['article_category'])) {
+          return 'Knowledge center';
+        }
+      }
+    }
+  }
+  elseif (strstr($current_path, 'training/registration-success')) {
+    return 'Training';
+  }
+  elseif (strstr($current_path, 'colours/collections')) {
+    return 'Collection';
+  }
+  elseif (strstr($current_path, 'colours/tools')) {
+    return 'Tool';
+  }
+  elseif (strstr($current_path, 'contact-us')) {
+    return 'Contact';
+  }
+  elseif (strstr($current_path, 'advice/knowledge')) {
+    return 'Knowledge center';
+  }
+  elseif (strstr($current_path, 'products/datasheets') || strstr($current_path, 'data-sheet/search')) {
+    return 'Document';
+  }
+}
+
+/**
+ * Pages indicated as: 41.01, 42.01
+ *
+ * Values - [FAQ category or Knowledge center category]
+ *
+ * Displays the name of the category of either the
+ * FAQ (products etc.) or the category of the Knowledge center.
+ */
+function painters_get_subcategory2($data_layer, $current_path, $request_path) {
+  if (isset($data_layer['entityType']) && $data_layer['entityType'] == 'node') {
+    if (isset($data_layer['entityBundle']) && $data_layer['entityBundle'] == 'faq') {
+      return _get_faq_category($data_layer['entityId']);
+    }
+    elseif ($data_layer['entityBundle'] == 'painters_article') {
+      if (isset($data_layer['entityTaxonomy']['article_category'])) {
+        if (!in_array('Sustainability', $data_layer['entityTaxonomy']['article_category']) && !in_array(t('Sustainability'), $data_layer['entityTaxonomy']['article_category'])) {
+          return array_shift($data_layer['entityTaxonomy']['article_category']);
+        }
+      }
+    }
+    elseif ($data_layer['entityBundle'] == 'panopoly_landing_page') {
+      if ($data_layer['entityId'] && $sitemap_value = get_sitemap_value($data_layer['entityId'])) {
+        if ($sitemap_value == '42.01') {
+          return 'Knowledge center category';
+        }
+      }
+    }
+  }
+}
+
+/**
+ * General search page | 10.01
+ *
+ * Number of search results in category products
+ */
+function painters_get_searchresultcategory1($data_layer, $current_path, $request_path) {
+  global $base_url;
+  if ((strstr($base_url . '/' . $current_path, $base_url . '/products/search') || strstr($base_url . '/' . $current_path, $base_url . '/search')) && !strstr($baseurl . '/' . $current_path, $baseurl . '/colours/search') && !strstr($baseurl . '/' . $current_path, $baseurl . '/data-sheet/search')) {
+    return 0;
+  }
+}
+
+/**
+ * General search page | 10.01
+ *
+ * Number of search results in category colours
+ */
+function painters_get_searchresultcategory2($data_layer, $current_path, $request_path) {
+  global $base_url;
+  if (strstr($base_url . '/' . $current_path, $base_url . '/colours/search') || strstr($base_url . '/' . $current_path, $base_url . '/search')) {
+    return 0;
+  }
+}
+
+/**
+ * General search page | 10.01
+ *
+ * Number of search results in category articles
+ */
+function painters_get_searchresultcategory3($data_layer, $current_path, $request_path) {
+  global $base_url;
+  if (strstr($base_url . '/' . $current_path, $base_url . '/search')) {
+    return 0;
+  }
+}
+
+/**
+ * Documents search page | 32
+ *
+ * Number of search results in category documents
+ */
+function painters_get_searchresultcategory4($data_layer, $current_path, $request_path) {
+  global $base_url;
+  if (strstr($base_url . '/' . $current_path, $base_url . '/products/datasheets') || strstr($base_url . '/' . $current_path, $base_url . '/data-sheet/search')) {
+    return 0;
+  }
+}
+
+/**
+ * Stores search page | 50.00
+ *
+ * Number of search results in category stores
+ */
+function painters_get_searchresultcategory5($data_layer, $current_path, $request_path) {
+  return 0;
+}
+
+/**
+ * General search page - 10.01
+ * The total of all search results on the
+ * general search page: searchResult
+ * Category1+2+3
+ */
+function painters_get_searchresultcategory6($data_layer, $current_path, $request_path) {
+  global $base_url;
+  if (strstr($base_url . '/' . $current_path, $base_url . '/search')) {
+    return 0;
+  }
+}
+
+/**
+ *
+ * @param unknown $data_layer
+ * @param unknown $current_path
+ * @param unknown $request_path
+ */
+function _get_page_type_panopoly_landing_page($data_layer, $current_path, $request_path) {
+  $page_type = 'Overview';
+  if ($data_layer['entityId'] && $sitemap_value = get_sitemap_value($data_layer['entityId'])) {
+    if (!empty($sitemap_value)) {
+      switch ($sitemap_value) {
+        case '40.01':
+
+          // Advice & Support article page
+          $page_type = 'Article';
+          break;
+
+        case '42.01':
+
+          // Knowledge center Category //Article
+          $page_type = 'Overview';
+          break;
+
+        case '42.01.01':
+
+          // Knowledge center article
+          $page_type = 'Article';
+          break;
+
+        case '50.00':
+
+          // Stores page
+          $page_type = 'Storefinder';
+          break;
+
+        case '10.05':
+
+          // Stores page
+          $page_type = 'Delete';
+          break;
+
+        case '60.01.01':
+
+          // Workspace help page
+          $page_type = 'Article';
+          break;
+
+        default:
+          $page_type = 'Overview';
+          break;
+      }
+    }
+  }
+  return $page_type;
+}
+
+/**
+ *
+ * @param unknown $data_layer
+ * @param unknown $current_path
+ * @param unknown $request_path
+ */
+function _get_primary_category_panopoly_landing_page($data_layer, $current_path, $request_path) {
+  $primary_cat = 'Support';
+  if ($data_layer['entityId'] && $sitemap_value = get_sitemap_value($data_layer['entityId'])) {
+    if (!empty($sitemap_value)) {
+      switch ($sitemap_value) {
+        case '30':
+        case '31':
+
+          // roducts overview(Product catlog) page
+          $primary_cat = 'Product';
+          break;
+
+        case '40.00':
+        case '40.01':
+        case '41':
+        case '42':
+        case '42.01':
+        case '42.01.01':
+        case '43':
+
+          // Knowledge Center page
+          $primary_cat = 'Advice';
+          break;
+
+        case '50.00':
+
+          // Stores page
+          $primary_cat = 'Storefinder';
+          break;
+
+        case '60.01.01':
+
+          // Workspace page
+          $page_type = 'Workspace';
+          break;
+
+        case '10.05':
+
+          // Workspace overview page
+          $primary_cat = 'Account';
+          break;
+
+        default:
+          $primary_cat = 'Support';
+          break;
+      }
+    }
+  }
+  return $primary_cat;
+}
+
+/**
+ *
+ * @param unknown $data_layer
+ * @param unknown $current_path
+ * @param unknown $request_path
+ */
+function _get_sub_cat1_panopoly_landing_page($data_layer, $current_path, $request_path) {
+  if ($data_layer['entityId']) {
+    $sitemap_value = get_sitemap_value($data_layer['entityId']);
+    if ($sitemap_value == '31') {
+      return 'Sustainability';
+    }
+    elseif ($sitemap_value == '41') {
+      return 'FAQ';
+    }
+    elseif ($sitemap_value == '42' || $sitemap_value == '42.01') {
+      return 'Knowledge center';
+    }
+    elseif ($sitemap_value == '43') {
+      return 'Training';
+    }
+  }
+}
+
+/**
+ * return sitemap value
+ *
+ * @param unknown $nid
+ *
+ * @return unknown
+ */
+function get_sitemap_value($nid) {
+  $results = '';
+  if ($nid) {
+    $query = db_select('node', 'n');
+    $query->join('field_data_field_dlr_sitemap_value', 'map', 'map.entity_id = n.nid');
+    $query->fields('map', array(
+      'field_dlr_sitemap_value_value ',
+    ));
+    $query->condition('n.type', 'panopoly_landing_page', '=');
+    $query->condition('n.nid', $nid);
+    $result = $query->execute()->fetchField();
+  }
+  return trim($result);
+}
+
+/**
+ * Defines the way the user has logged in.
+ * e.g., Social network name (Facebook) or email login.
+ * Values - [Social network] [Email]
+ */
+function painters_get_login_type() {
+  if (check_sesssion_empty('login_type')) {
+    $login_type = session_cache_get('login_type');
+  }
+  else {
+    $login_type = 'E-mail';
+  }
+  return $login_type;
+}
+
+/**
+ * The functionality for which the user signed up: e.g., ecommerce, scrapbook etc.
+ * Values - [Functionality for which the user signed up]
+ */
+function painters_get_registration_type() {
+  return 'undefined';
+}
+
+/**
+ * Returns Clinet IP address.
+ */
+function get_client_ip() {
+  // Just get the headers if we can or else use the SERVER global
+  if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
+    $ip = $_SERVER['HTTP_CLIENT_IP'];
+  }
+  elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+    $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+  }
+  else {
+    $ip = $_SERVER['REMOTE_ADDR'];
+  }
+  $ip = explode(',', $ip);
+  return $ip[0];
+}
+
+/**
+ * Return faq category.
+ *
+ * @param unknown $nid
+ */
+function _get_faq_category($nid) {
+  $faq_category = '';
+  if ($nid) {
+    $faq_category = db_select('node', 'n');
+    $faq_category->join('field_data_field_faq_cat_label', 'f', 'f.entity_id = n.nid');
+    $faq_category->fields('f', array(
+      'field_faq_cat_label_value',
+    ));
+    $faq_category->condition('n.type', 'faq', '=');
+    $faq_category->condition('n.nid', $nid, '=');
+    $faq_category = $faq_category->execute()->fetchField();
+  }
+  return $faq_category;
+}
+
+/**
+ * Get Collection name by collection ID.
+ */
+function _get_collection_name_by_id($collectionid) {
+  $collectionname = '';
+  if (isset($collectionid) && !empty($collectionid)) {
+    $query = db_select('node', 'n');
+    $query->join('field_data_field_collection_id_from_api', 'col', 'col.entity_id = n.nid');
+    $query->fields('n', array(
+      'title',
+    ));
+    $query->condition('col.field_collection_id_from_api_value', $collectionid, '=');
+    $collectionname = $query->execute()->fetchfield();
+  }
+  return t($collectionname);
+}
+
+/**
+ * Returns Client IP.
+ */
+function _painters_get_client_ip_address() {
+  $ip = get_client_ip();
+  drupal_json_output(array(
+    'ip' => $ip,
+  ));
+  drupal_exit();
+}

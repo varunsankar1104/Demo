@@ -1,0 +1,657 @@
+<?php
+
+/**
+ * @file
+ * Code for the painters_promotional_brands.module.
+ */
+
+/**
+ * Implements hook_FOM_ID_alter().
+ *
+ * Carousel content form alter
+ */
+function painters_promotional_brands_form_carousel_content_node_form_alter(&$form, $form_state, $form_id) {
+  // Adding JS file to handle conditional fields as conditional field contrib module not supports multifileds so
+  $module_path = drupal_get_path('module', 'painters_promotional_brands');
+  drupal_add_js($module_path . '/js/painters_promotional_carousel.js');
+  $key_cs = $form['field_carousel_section']['#language'];
+  $key_button_include = $form['field_carousel_section'][$key_cs][0]['field_carousel_button_include']['#language'];
+  unset($form['field_carousel_section'][$key_cs][0]['field_carousel_button_include'][$key_button_include]['#options']['_none']);
+}
+
+/**
+ * Implements hook_FORM_ID_alter().
+ *
+ * Brand Content from alter
+ */
+function painters_promotional_brands_form_brand_node_form_alter(&$form, $form_state, $form_id) {
+  global $base_path, $base_url;
+  // Adding JS file to hide complementory group as conditional field contrib module doesn't hide the group field
+  $module_path = drupal_get_path('module', 'painters_promotional_brands');
+  drupal_add_js($module_path . '/js/painters_promotional_brands.js');
+  // Get lead brand details
+  $lead_brand = _get_lead_brand_content();
+  if (isset($lead_brand) && !empty($lead_brand)) {
+    // check current node is the lead brand ??
+    if (isset($form['nid']['#value']) && !empty($form['nid']['#value']) && $lead_brand['nid'] == $form['nid']['#value']) {
+      // do nothing
+    }
+    else {
+      $form['field_lead_brand']['#disabled'] = TRUE;
+      $selected_text = $lead_brand['title'] . ' already been selected as Lead brand. Please uncheck lead brand in <a target="_blank" href="' . $base_path . 'node/' . $lead_brand['nid'] . '/edit">' . $lead_brand['title'] . '</a>';
+      $form['field_lead_brand']['#prefix'] = '<div class="lead-brand-exits">';
+      $form['field_lead_brand']['#suffix'] = '' . $selected_text . '</div>';
+    }
+  }
+  $form['#submit'][] = 'painters_brand_form_node_submit_handler';
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function painters_promotional_brands_block_info() {
+  $blocks = array();
+
+  $blocks['carousel_slider'] = array(
+    'info' => t('Carousel Slider'),
+  );
+
+  $blocks['product_catelogue_brand_page'] = array(
+    'info' => t('Product Catalogue for Brand Page'),
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function painters_promotional_brands_block_view($delta = '') {
+  $block = array();
+  global $language;
+  switch ($delta) {
+    case 'carousel_slider':
+      $variables = array();
+      $section2_blocks = '';
+      if ($nid = check_plain(filter_xss(arg(1)))) {
+        $brand_nid = $nid;
+        $carousel_entity_id = _get_carousel_entity_id_by_brand_nid($nid);
+        if (!empty($carousel_entity_id)) {
+          $variables = _get_carousel_slider($carousel_entity_id);
+        }
+        $node = node_load($nid);
+        $features = painters_features__load_features();
+        $load_boxes = FALSE;
+        if(!empty($node->field_lead_brand) && $node->field_lead_brand['und'][0]['value'] == 1 && $features['lead_brand_boxes'] == 1) {
+          $load_boxes = TRUE;
+        }
+        if(!empty($node->field_lead_brand) && $node->field_lead_brand['und'][0]['value'] != 1 && $features['comp_brand_boxes'] == 1) {
+          $load_boxes = TRUE;
+        }
+        if($load_boxes) {
+          $section2_vars = _get_product_catalogue_details_by_brand_nid($node); // Call from solr module
+          $section2_blocks = theme('product_catelogue_brand_page', array(
+            'product_catelogue' => $section2_vars
+          ));
+        }
+      }
+
+      $block['content'] = theme('carousel_slider', array(
+          'carousel_slider' => $variables,
+          'section_blocks' => $section2_blocks,
+        ));
+      break;
+
+    case 'product_catelogue_brand_page':
+      $variables = array();
+      if ($nid = check_plain(arg(1))) {
+        $brand_nid = $nid;
+        $node = node_load($nid);
+        $variables = _get_product_catalogue_details_by_brand_nid($node);
+      }
+      $block['content'] = theme('product_catelogue_brand_page', array(
+          'product_catelogue' => $variables,
+        ));
+      break;
+  }
+
+  return $block;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function painters_promotional_brands_theme() {
+  $module_path = drupal_get_path('module', 'painters_my_workspace') . '/template';
+  $theme = array(
+    'carousel_slider' => array(
+      'template' => 'carousel-slider',
+      'type' => 'theme',
+    ),
+  );
+  return $theme;
+}
+
+/**
+ * Returns carousel node nid for a given brand nid.
+ */
+function _get_carousel_entity_id_by_brand_nid($brand_nid) {
+  $cache_id = 'painters_promotional_brands_carousel_' . $brand_nid;
+  if ($cache = cache_get($cache_id)) {
+    $result = $cache->data;
+  }
+  else {
+    $query = db_select('node', 'n');
+    $query->join('field_data_field_carousel_section_reference', 'c', 'c.entity_id = n.nid');
+    $query->fields('c', array(
+        'field_carousel_section_reference_target_id',
+      ));
+    $query->condition('n.type', 'brand', '=');
+    $query->condition('n.status', '1', '=');
+    $query->condition('n.nid', $brand_nid, '=');
+    $result = $query->execute()->fetchField();
+    cache_set($cache_id, $result, 'cache', CACHE_TEMPORARY);
+  }
+
+  return $result;
+}
+
+/**
+ * Returns carousel slider variables.
+ *
+ * @param unknown $nid
+ */
+function _get_carousel_slider($nid) {
+  global $language;
+  $cache_id = 'painters_carousel_' . $nid;
+  if ($cache = cache_get($cache_id)) {
+    $output = $cache->data;
+  }
+  else {
+    $output = array();
+    global $base_path, $base_url;
+    if ($node = node_load($nid)) {
+      if (isset($node->field_carousel_section)) {
+        $slider_sections = field_get_items('node', $node, 'field_carousel_section');
+        $i = 0;
+        $brand_filter_enabled = _is_brand_filter_enabled();
+        foreach ($slider_sections as $section) {
+          $target = '';
+          $multifield_output = field_view_value('node', $node, 'field_carousel_section', $section);
+          if (isset($multifield_output['field_carousel_title'][0]['#markup']) && !empty($multifield_output['field_carousel_title'][0]['#markup'])) {
+            $output[$i]['title'] = $multifield_output['field_carousel_title'][0]['#markup'];
+          }
+          if (isset($multifield_output['field_carousel_image'][0]['#item']['uri']) && !empty($multifield_output['field_carousel_image'][0]['#item']['uri'])) {
+            $output[$i]['image'] = painters_utils_file_create_url($multifield_output['field_carousel_image'][0]['#item']['uri']);
+            //Uncomment once new image style deployed.
+            //$output[$i]['image'] = _painters_image_style_url('media_xxl', $multifield_output['field_carousel_image'][0]['#item']['uri']);
+          }
+
+          if (isset($multifield_output['field_carousel_button_include']['#items'][0]['value'])) {
+            $button_url = '#';
+            $output[$i]['button_label'] = t($multifield_output['field_carousel_button_label'][0]['#markup']);
+            if ($multifield_output['field_carousel_button_include']['#items'][0]['value'] == 1) {
+              if (isset($multifield_output['field_carousel_prd_cat']['#items'][0]['tid'])) {
+                $product_cat = $multifield_output['field_carousel_prd_cat']['#items'][0]['taxonomy_term']->name;
+              }
+              $brand_path = '';
+              if (isset($multifield_output['field_carousel_brand']['#items'][0]['target_id'])) {
+                $lang = $multifield_output['field_carousel_brand']['#items'][0]['entity']->language;
+                $brand_tid = $multifield_output['field_carousel_brand']['#items'][0]['entity']->field_prod_brand[$lang][0]['tid'];
+                $brand_term_name = $multifield_output['field_carousel_brand']['#items'][0]['entity']->field_prod_brand[$lang][0]['taxonomy_term']->name;
+                if (isset($brand_tid) && $brand_filter_enabled) {
+                  $brand_path = '/' . 'brand/' . $brand_term_name;
+                }
+              }
+              $source = painters_drupal_lookup_path('products-listing', $language->language);
+              $button_url = url($source . '/' . strtolower($product_cat)) . $brand_path;
+            }
+            elseif ($multifield_output['field_carousel_button_include']['#items'][0]['value'] == 0) {
+              if (url_is_external($multifield_output['field_carousel_link_title']['#items'][0]['url'])) {
+                $target = 'target="_blank"';
+              }
+              $button_url = _painters_get_link_field_url($multifield_output['field_carousel_link_title']['#items'][0]);
+            }
+            $output[$i]['button_url'] = !empty($button_url) ? $button_url : '#';
+            $output[$i]['url_target'] = $target;
+          }
+          $i++;
+        }
+      }
+    }
+    cache_set($cache_id, $output, 'cache', CACHE_TEMPORARY);
+  }
+  return $output;
+}
+/**
+ * Returns product catlog variables.
+ */
+function _get_product_catalogue_details_by_brand_nid($node) {
+  global $base_path, $base_url, $language;
+  $output = array();
+  $options = array();
+  $output[0]['lead_brand_class'] = '';
+  $output[0]['product_type_terms'] = '';
+  $output[0]['lead_brand'] = 0;
+  $output[0]['brand_term_name'] = '';
+
+  // Pass Product listing URL alias
+  drupal_add_js(array(
+    'painters_product_listing_url' => url('products-listing')
+      ), 'setting');
+
+  if ($node) {
+    $nid = $node->nid;
+    // Get the term ID for the product type Paint
+    $product_cat = $multifield_output['field_carousel_prd_cat']['#items'][0]['taxonomy_term']->name;
+    $default_product_type_term = _get_default_product_type_term();
+    $prod_type_tid = $default_product_type_term['tid'];
+    $product_type_name = $default_product_type_term['name'];
+    $brand_tid = $node->field_prod_brand[$node->language][0]['tid'];
+    $brand_term_name = $node->field_prod_brand[$node->language][0]['taxonomy_term']->name;
+    $brandTermName = $node->field_prod_brand[$node->language][0]['taxonomy_term']->name;
+    $output[0]['brand_term_name'] = $brand_term_name;
+    $brand_filter_enabled = _is_brand_filter_enabled();
+
+    // Check for lead brand or not
+    if (isset($node->field_lead_brand)) {
+      $field_lead_brand_item = field_get_items('node', $node, 'field_lead_brand');
+      if ($field_lead_brand_item[0]['value'] != 1) {
+        // $options = _get_relevant_product_type_from_brand_solr($brand_tid);
+        // Call Common funtion to get list of Top 6 Product Term name Array
+        $options = _get_top_product_categories();
+        $productTermName = _get_productCategory_of_brand_solr($node->title);
+        $intersectProductTermName = array_intersect($options, $productTermName);
+        $select_list['_none'] = t('Select product category');
+        $intersectProductTermName = array_replace($select_list, $intersectProductTermName);
+        $output[0]['product_type_terms'] = theme('select', array(
+            'element' => array(
+              '#options' => $intersectProductTermName,
+              '#attributes' => array(
+                'id' => 'product_filter',
+              ),
+              'name' => 'product_filter',
+            ),
+          ));
+        $output[0]['option_count'] = count($intersectProductTermName);
+      }
+      elseif ($field_lead_brand_item[0]['value'] == 1) {
+        $output[0]['lead_brand'] = 1;
+      }
+    }
+
+    if (isset($node->field_br_section2_fields)) {
+      $section2_items = field_get_items('node', $node, 'field_br_section2_fields');
+      $i = 0;
+      foreach ($section2_items as $section) {
+        $output[$i]['title'] = $section['field_br_section2_title']['und'][0]['value'];
+        $output[$i]['button_label'] = $section['field_br_sec2_link_title']['und'][0]['value'];
+        //Use this once image style changes are deployed
+        //$output[$i]['image'] = _painters_image_style_url('media_sm', $section['field_br_section2_image']['und'][0]['uri']);
+        $output[$i]['image'] = painters_utils_file_create_url($section['field_br_section2_image']['und'][0]['uri']);
+
+        if (isset($section['field_br_sec2_link_title']) && count($section['field_br_sec2_link_title'])) {
+          switch($i) {
+            case 0: //product browsing
+              $output[$i]['product_term'] = $product_type_name;
+              $output[$i]['brand'] = $brand_tid;
+              $brand_param = '';
+              if (!empty($brand_term_name) && $brand_filter_enabled) {
+                $brand_param = '/brand/' . $brand_term_name;
+              }
+              $source = painters_drupal_lookup_path('products-listing', $language->language);
+              $button_url = url($source . '/' . strtolower($product_type_name)) . $brand_param;
+              break;
+
+            case 1: // color listing
+              $main_color_palette = variable_get('main_color_palette_nid');
+              $color_collection_nid = key($main_color_palette);
+              $color_landing_url = 'colours';
+              $button_url = url($color_landing_url);
+              break;
+
+            case 2://product datasheet
+              $button_url = url('products/datasheets');
+              break;
+
+            case 3://workspace
+              $button_url = url('workspace');
+              break;
+          }
+        }
+        $output[$i]['button_url'] = $button_url;
+        $i++;
+      }
+    }
+  }
+  // cache URL parameters whic are passing to Product search page
+  cache_product_catagory_parameters_solr($output[0]['product_type_terms']);
+  return $output;
+}
+
+/**
+ * * Cache the Product type term name list under dropdown of brand page
+ *
+ * @param unknown $cache_product_term_name
+ *
+ * @return unknown
+ */
+function cache_product_catagory_parameters_solr($cache_product_term_name) {
+  $cache_id = 'brand_term_name_product_search';
+  $get_cache = cache_get($cache_id);
+  cache_set($cache_id, $cache_product_term_name, 'cache', CACHE_TEMPORARY);
+  return $cache_product_term_name;
+}
+
+/**
+ * Get the list of Product Type Term name List
+ * Brane Name = "Node Title" of "Brand Node Type"
+ */
+function _get_productCategory_of_brand_solr($brandName) {
+  $solrData = new solrDataApi();
+  $lang = "_" . _get_current_users_language();
+  $brandName = str_replace(' ', '+', $brandName);
+  $fieldName = "brandName";
+  $fieldSearch = "productCategoryStr" . $lang;
+  $filter_prefixes = 'ct';
+  $query_string = '&fq=' . $fieldName . '%3A"' . $brandName . '"&fl=' . $fieldSearch . '&wt=json&indent=true&facet=true&facet.field=' . $fieldSearch . '&facet.mincount=1&facet.limit=-1';
+  $results = $solrData->solrQuery($query_string, $solrData->packageCoreName, $result_type);
+  if (function_exists('_return_product_category_array')) {
+    return _return_product_category_array($results, $fieldSearch, $filter_prefixes);
+  }
+}
+
+/**
+ * Takes the solr result of product category and subcategory mapping and returns product category names as an array.
+ * e.g, $catFieldwithSuffix = productCategoryStr_en
+ * e.g, $filter_prefixes = "ct" "sc" category or sub category
+ */
+function _return_product_category_array($results, $catFieldwithSuffix, $filter_prefixes) {
+  $categories = array();
+  foreach ($results['facet_counts']['facet_fields'][$catFieldwithSuffix] as $key => $filter_mapping) {
+    if (!is_numeric($filter_mapping)) {
+      $filter_mapping = str_replace('; ', ';', $filter_mapping);
+      $filter_mapping = rtrim($filter_mapping, ';');
+      $array = array();
+      $lines = explode(";", $filter_mapping);
+      foreach ($lines as $line) {
+        list($key, $value) = explode(":", $line);
+        if ($key == $filter_prefixes) {
+          $categories[] = $value;
+        }
+      }
+    }
+  }
+  return $categories;
+}
+
+/**
+ * Returns vocubulary terms.
+ *
+ * @param unknown $name
+ */
+function _get_taxonomy_vocabulary_terms($name) {
+  $terms = array();
+  if ($vocabulary = taxonomy_vocabulary_machine_name_load($name)) {
+    $all_terms = entity_load('taxonomy_term', FALSE, array(
+        'vid' => $vocabulary->vid,
+      ));
+    foreach ($all_terms as $term) {
+      $terms[$term->tid] = t($term->name);
+    }
+  }
+  return $terms;
+}
+
+/**
+ * Returns All the relevant Product type terms for the brand
+ *
+ * @param unknown $brand_nid
+ */
+function _get_product_types_by_brand_tid($brand_tid) {
+  $terms = array();
+  if (!empty($brand_tid)) {
+    $result = _get_relevant_product_type_from_brand($brand_tid);
+    if (!empty($result)) {
+      $terms_load = taxonomy_term_load_multiple($result);
+      foreach ($terms_load as $term) {
+        $terms[$term->tid] = t($term->name);
+      }
+    }
+  }
+  return $terms;
+}
+
+/**
+ * Returnss product type values for a given brand term id.
+ */
+function _get_relevant_product_type_from_brand($brand_tid) {
+  $result = '';
+  if (!empty($brand_tid)) {
+    $query = db_select('node', 'n');
+    $query->join('field_data_field_prod_brand', 'b', 'n.nid = b.entity_id');
+    $query->join('field_data_field_product_type', 'p', 'n.nid = p.entity_id');
+    $query->AddExpression('distinct p.field_product_type_tid', 'tid');
+    $query->condition('n.type', 'platform_product', '=');
+    $query->condition('n.status', '1', '=');
+    $query->condition('b.field_prod_brand_tid', $brand_tid, '=');
+    $result = $query->execute()->fetchCol();
+  }
+  return $result;
+}
+
+/**
+ * Returns collection nid for a given brand node id.
+ */
+function _get_collection_nid_from_brand($brand_nid) {
+  $collection_nid = '';
+  if (!empty($brand_nid)) {
+    // Get Collection NID from Brand
+    $product_nids = _get_product_nids_from_brand($brand_nid);
+    if (!empty($product_nids)) {
+      $collection_nid = _get_collection_nid_from_product($product_nids);
+    }
+  }
+  return $collection_nid;
+}
+
+/**
+ * Returns product node ids for a given brand node id.
+ */
+function _get_product_nids_from_brand($brand_nid) {
+  $result = '';
+  if (!empty($brand_nid)) {
+    $query = db_select('node', 'n');
+    $query->join('field_data_field_prod_brand', 'b', 'n.nid = b.entity_id');
+    $query->AddExpression('distinct n.nid', 'product');
+    $query->condition('n.type', 'platform_product', '=');
+    $query->condition('n.status', '1', '=');
+    $query->condition('b.field_prod_brand_tid', $brand_nid, '=');
+    $result = $query->execute()->fetchCol();
+  }
+  return $result;
+}
+
+/**
+ * Returns lead brand content.
+ */
+function _get_lead_brand_content() {
+  $lead_brand_data = array();
+  $query = db_select('node', 'n');
+  $query->join('field_data_field_lead_brand', 'ld', 'ld.entity_id = n.nid');
+  $query->fields('n', array(
+      'title',
+      'nid',
+    ));
+  $query->condition('n.type', 'brand', '=');
+  $query->condition('n.status', '1', '=');
+  $query->condition('ld.field_lead_brand_value', '1', '=');
+  $query->range(0, 1);
+  $result = $query->execute();
+  while ($brand_data = $result->fetchAssoc()) {
+    $lead_brand_data = $brand_data;
+  }
+  return $lead_brand_data;
+}
+
+/**
+ * Returns lead brand nids.
+ *
+ * @return Ambigous <multitype:, An>
+ */
+function _get_lead_brand_nodes() {
+  $lead_brand_data = array();
+  $query = db_select('node', 'n');
+  $query->join('field_data_field_lead_brand', 'ld', 'ld.entity_id = n.nid');
+  $query->fields('n', array(
+      'title',
+      'nid',
+    ));
+  $query->condition('n.type', 'brand', '=');
+  $query->condition('n.status', '1', '=');
+  $query->condition('ld.field_lead_brand_value', '1', '=');
+  $result = $query->execute();
+  while ($record = $result->fetchAssoc()) {
+    $results[$record['nid']] = $record['title'];
+  }
+  return $results;
+}
+
+/**
+ * Custom submit handler for Brand nodes.
+ *
+ * @param unknown $form
+ * @param unknown $form_state
+ */
+function painters_brand_form_node_submit_handler($form, &$form_state) {
+  if (isset($form_state['values']['field_lead_brand']['und'][0]['value']) && $form_state['values']['field_lead_brand']['und'][0]['value'] == 1) {
+    // Removing other Brands
+    $lead_brand = _get_lead_brand_nodes();
+    $lead_brand_nids = array_keys($lead_brand);
+    if (!empty($lead_brand_nids) & count($lead_brand_nids) > 0) {
+      // Getting Brand NID's to remove
+      $brand_nids_to_delete = array_diff($lead_brand_nids, array(
+          $form_state['values']['nid'],
+        ));
+      if (!empty($brand_nids_to_delete) && count($brand_nids_to_delete) > 0) {
+        foreach ($brand_nids_to_delete as $brand_nid) {
+          $brand_load = node_load($brand_nid);
+          $brand_load->field_lead_brand['und'][0]['value'] = 0;
+          node_save($brand_load);
+        }
+      }
+    }
+    // Set lead brand as default homepage
+    variable_set('site_frontpage', 'node/' . $form_state['values']['nid']);
+  }
+}
+
+/**
+ * Implements hook_theme_registry_alter().
+ */
+function painters_promotional_brands_theme_registry_alter(&$theme_registry) {
+  $theme_path = drupal_get_path('theme', 'painters');
+  // eu_cookie_compliance_popup_info
+  $theme_registry['eu_cookie_compliance_popup_info']['template'] = 'eu_cookie_compliance_popup_info';
+  $theme_registry['eu_cookie_compliance_popup_info']['path'] = $theme_path . '/templates/eu_cookie';
+  $theme_registry['eu_cookie_compliance_popup_info']['theme path'] = $theme_path;
+  // eu_cookie_compliance_popup_agreed
+  $theme_registry['eu_cookie_compliance_popup_agreed']['template'] = 'eu_cookie_compliance_popup_agreed';
+  $theme_registry['eu_cookie_compliance_popup_agreed']['path'] = $theme_path . '/templates/eu_cookie';
+  $theme_registry['eu_cookie_compliance_popup_agreed']['theme path'] = $theme_path;
+}
+
+/**
+ * Provides lead brand data to be used across the site.
+ * Current usage on all pages: for logo image, logo title.
+ */
+function _painters_lead_brand_data($reset = FALSE) {
+  $cache_id = 'painters_lead_brand_data';
+
+  $lead_brand_data = &drupal_static(__FUNCTION__ . '_' . $cache_id);
+  if (!isset($lead_brand_data)) {
+    $cache = cache_get($cache_id);
+    if (!empty($cache) && isset($cache->data) && $reset == FALSE) {
+      $lead_brand_data = $cache->data;
+    }
+    else {
+      $lead_brand_data = array();
+      $query = db_select('node', 'n');
+      $query->join('field_data_field_lead_brand', 'ld', 'ld.entity_id = n.nid');
+      $query->join('field_data_field_brand_logo', 'logo', 'logo.entity_id = n.nid');
+      $query->fields('n', array(
+          'title',
+          'nid',
+        ));
+      $query->fields('logo', array(
+          'field_brand_logo_fid',
+        ));
+      $query->condition('n.type', 'brand', '=');
+      $query->condition('n.status', '1', '=');
+      $query->condition('ld.field_lead_brand_value', '1', '=');
+      $query->range(0, 1);
+      $result = $query->execute();
+      while ($brand_data = $result->fetchAssoc()) {
+        //Generate classname based on brancd title. Character conversion is needed
+        //to ensure exact class name.
+        $class_key = filter_xss(trim($brand_data['title']));
+        $class_key = strtolower(iconv('UTF-8', 'ASCII//TRANSLIT', $class_key));
+        $class_key =  str_replace(array('"', '\''), array(), $class_key);
+        $brand_data['class'] = drupal_html_class('bl-' . $class_key);
+
+        $logo = file_load($brand_data['field_brand_logo_fid']);
+        $brand_data['logo'] = painters_utils_file_create_url($logo->uri);
+        $lead_brand_data = $brand_data;
+      }
+      cache_set($cache_id, $lead_brand_data, 'cache', CACHE_TEMPORARY);
+    }
+  }
+  return $lead_brand_data;
+}
+
+/**
+ * Implements hook_preprocess_page().
+ */
+function painters_promotional_brands_preprocess_page(&$variables, $hook) {
+  // For brand node pages, we need to calculate & set body/page/main classes
+  // based on RGB values
+  if (isset($variables['node'])) {
+    $node = $variables['node'];
+    $field_br_color = _painters_language_field($node, 'field_br_color_picker');
+    $field_lead_brand = _painters_language_field($node, 'field_lead_brand');
+    if ($node->type == 'brand' && $field_br_color && $field_br_color[0]['value'] != '' && $field_lead_brand[0]['value'] != 1) {
+      $brand_rgb = '#' . $field_br_color[0]['value'];
+      $rgb = painters_hex2rgb($brand_rgb);
+      $rgb_class = painters_gettextcolour($rgb[0], $rgb[1], $rgb[2]);
+      $main_class = $rgb_class == 'colour--dark' ? 'brand--inverted' : 'brand--normal';
+      $variables['main_class'] = isset($variables['main_class']) ? $variables['main_class'] . ' ' . $main_class : $main_class;
+    }
+  }
+
+  // Lead brand data made available for page
+  $lead_brand = _painters_lead_brand_data();
+  $variables ['lead_brand_logo'] = (! empty ( $lead_brand ) && isset ( $lead_brand ['logo'] )) ? $lead_brand ['logo'] : '';
+  $variables ['lead_brand_class'] = (! empty ( $lead_brand ) && isset ( $lead_brand ['class'] )) ? $lead_brand ['class'] : '';
+  $variables['lead_brand_title'] = (!empty($lead_brand) && isset($lead_brand['title'])) ? $lead_brand['title'] : '';
+}
+
+/**
+ * Implements hook_preprocess_print().
+ */
+function painters_promotional_brands_preprocess_print(&$variables) {
+  // Lead brand : Global data
+  $lead_brand = _painters_lead_brand_data();
+  $variables['print_logo'] = '<img src="' . $lead_brand['logo'] . '"/>';
+}
+
+/**
+ * Implements hook_node_update().
+ *
+ */
+function painters_promotional_brands_node_update($node) {
+  switch ($node->type) {
+    case 'brand':
+      // reset lead brand cache
+      _painters_lead_brand_data(TRUE);
+      break;
+  }
+}
